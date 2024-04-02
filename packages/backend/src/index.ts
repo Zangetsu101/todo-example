@@ -69,6 +69,37 @@ const app = new Elysia()
     }
   )
 
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todoIndex = TODOS.findIndex(todo => todo.id === parseInt(params.id))
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+  
+      const requestBody: Partial<{
+        desc: string,
+        starred: boolean,
+        completed: boolean
+      }> = body as any;
+  
+      const updatedTodo = { ...TODOS[todoIndex] }
+      if (requestBody.desc !== undefined) {
+        updatedTodo.desc = requestBody.desc
+      }
+      if (requestBody.starred !== undefined) {
+        updatedTodo.starred = requestBody.starred
+      }
+      if (requestBody.completed !== undefined) {
+        updatedTodo.completed = requestBody.completed
+      }
+  
+      TODOS[todoIndex] = updatedTodo
+  
+      return updatedTodo
+    }
+  )
+  
   .delete(
     '/todos/:id',
     ({ params, error }) => {
