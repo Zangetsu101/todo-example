@@ -25,11 +25,12 @@ let TODOS = [
  */
 
 const app = new Elysia()
+  .state('id', TODOS.length + 1)
   .get('/todos', () => TODOS)
   .post(
     '/todos',
-    ({ body, error }) => {
-      const newTodo = { id: TODOS.length + 1, ...body }
+    ({ body, store, error }) => {
+      const newTodo = { id: store.id++, ...body }
       try {
         TODOS = [...TODOS, newTodo]
         return {
