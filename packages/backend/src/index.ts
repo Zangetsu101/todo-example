@@ -132,6 +132,43 @@ const app = new Elysia()
       })
     }
   )
+
+  .post(
+    '/todos',
+    ({ body }) => {
+      const newTodo = { ...body, id: TODOS.length + 1, starred: false, completed: false }
+      TODOS.push(newTodo)
+      return newTodo
+    },
+    {
+      body: t.Object({
+      desc: t.String()
+      })
+    }
+  )
+
+  .put(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todoIndex = TODOS.findIndex(todo => todo.id === parseInt(params.id as unknown as string, 10))
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body, id: parseInt(params.id as unknown as string, 10) }
+      return TODOS[todoIndex]
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+        body: t.Object({
+        desc: t.String(),
+        starred: t.Boolean(),
+        completed: t.Boolean()
+      })
+    }
+  )
+
   .listen(3000)
 
 console.log(
