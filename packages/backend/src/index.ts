@@ -142,7 +142,7 @@ const app = new Elysia()
     },
     {
       body: t.Object({
-      desc: t.String()
+        desc: t.String()
       })
     }
   )
@@ -150,21 +150,38 @@ const app = new Elysia()
   .put(
     '/todos/:id',
     ({ params, body, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === parseInt(params.id as unknown as string, 10))
+      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
       if (todoIndex === -1) {
         return error(404, 'Todo not found')
       }
-      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body, id: parseInt(params.id as unknown as string, 10) }
+      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body, id: params.id }
       return TODOS[todoIndex]
     },
     {
       params: t.Object({
         id: t.Numeric()
       }),
-        body: t.Object({
+      body: t.Object({
         desc: t.String(),
         starred: t.Boolean(),
         completed: t.Boolean()
+      })
+    }
+  )
+
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+      TODOS.splice(todoIndex, 1)
+      return { success: true }
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
       })
     }
   )
