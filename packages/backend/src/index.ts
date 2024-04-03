@@ -1,7 +1,7 @@
-import { Elysia, t } from 'elysia'
+import { Elysia, error, t } from 'elysia'
 let id = 2
 
-const TODOS = [
+let TODOS = [
   {
     id: 1,
     starred: false,
@@ -36,7 +36,7 @@ const app = new Elysia()
   .post(
     '/addTodo',
     ({ body }) => {
-      const newTodo = { id: ++id, ...body, }
+      const newTodo = { id: ++id, ...body }
       TODOS.push(newTodo)
       return newTodo
     },
@@ -45,6 +45,22 @@ const app = new Elysia()
         starred: t.Boolean(),
         completed: t.Boolean(),
         desc: t.String()
+      })
+    }
+  )
+  .delete(
+    'deleteTodo/:id',
+    ({ params }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404, 'No records belongs to that id')
+      }
+      TODOS = TODOS.filter((todo) => todo.id !== params.id)
+      return TODOS
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
       })
     }
   )
