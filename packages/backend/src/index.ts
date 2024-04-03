@@ -32,6 +32,42 @@ const app = new Elysia()
       })
     }
   )
+  .post(
+    '/todos',
+    ({ body }) => {
+      const id = TODOS[TODOS.length - 1].id + 1
+      TODOS.push({ id, ...body })
+      return TODOS
+    },
+    {
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .put(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      Object.assign(todo, body)
+      return todo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
   .listen(3000)
 
 console.log(
