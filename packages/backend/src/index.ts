@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia'
+import { default as Elysia, t } from 'elysia'
 let globalId = 3
 
 let TODOS = [
@@ -23,7 +23,7 @@ const app = new Elysia()
     ({ params, error }) => {
       const todo = TODOS.find((todo) => todo.id === params.id)
       if (!todo) {
-        return error(404)
+        return error(404, 'Todo not found.')
       }
       return todo
     },
@@ -32,14 +32,18 @@ const app = new Elysia()
         id: t.Numeric()
       })
     })
-    .delete('/todos/delete/:id', ({params, error}) => {
-        const todoId = parseInt(params.id);
-        const todos = TODOS.filter((todo) => todo.id !== todoId)
-        if (TODOS.length == todos.length){
-            return error(404)
+    .delete('/todos/:id', ({params, error}) => {
+        const index = TODOS.findIndex(todo => todo.id === params.id)
+        if (index === -1) {
+            return error(404, 'Todo to be deleted not found.')
         }
+        const todos = TODOS.filter((todo) => todo.id !== params.id)
         TODOS = todos
-        return TODOS
+        return {"message": "Deletion successful"}
+        },{
+        params: t.Object({
+            id: t.Numeric()
+        })
     })
     .post('/todos', ({ params, error, body }) => {
         if (body && body.desc) {
@@ -51,36 +55,41 @@ const app = new Elysia()
             };
             globalId++; // Increment globalId for the next todo
             TODOS.push(newTodo);
-            return TODOS;
+            return {"message": "Todo added."};
         }
-        return error(404, 'Todo description is required.');
+        return error(400, 'Todo description is required.');
 
     })
     .put('/todos/:id', ({params, body, error}) => {
         const todoId = parseInt(params.id);
         const index = TODOS.findIndex(todo => todo.id === todoId);
         if (index === -1) {
-            return error(404, 'Todo not found');
+            return error(404, 'Todo to be updated not found');
+        }
+        // Validate that all todo properties are included in the request body
+        if (!body || !body.desc || !('starred' in body) || !('completed' in body)) {
+            return error(400, 'All todo properties must be included in the request body');
         }
         const updatedTodo = {
-            ...TODOS[index],
-            ...body
+            id: todoId,
+            desc: body.desc,
+            starred: body.starred,
+            completed: body.completed
         };
         TODOS[index] = updatedTodo;
-        return TODOS
+        return {"message": "Put update successful."}
     })
     .patch('/todos/:id', ({ params, body, error }) => {
         const todoId = parseInt(params.id);
         const index = TODOS.findIndex(todo => todo.id === todoId);
         if (index === -1) {
-            return error(404, 'Todo not found');
+            return error(404, 'Todo to be updated not found');
         }
-        const updatedTodo = {
+        TODOS[index] = {
             ...TODOS[index],
             ...body
         };
-        TODOS[index] = updatedTodo;
-        return TODOS[index];
+        return {"message": "Patch update successful."}
     })
 
   .listen(3000)
