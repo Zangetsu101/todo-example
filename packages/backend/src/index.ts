@@ -15,6 +15,8 @@ const TODOS = [
   }
 ]
 
+let idCounter = 3
+
 const app = new Elysia()
   .get('/todos', () => TODOS)
   .get(
@@ -29,6 +31,29 @@ const app = new Elysia()
     {
       params: t.Object({
         id: t.Numeric()
+      })
+    }
+  )
+  .post(
+    '/todos',
+    ({ body, error }) => {
+      if (!body.desc) {
+        return error(400, 'Description is required')
+      }
+
+      const todo = {
+        id: idCounter++,
+        starred: false,
+        completed: false,
+        desc: body.desc
+      }
+      TODOS.push(todo)
+
+      return todo
+    },
+    {
+      body: t.Object({
+        desc: t.String()
       })
     }
   )

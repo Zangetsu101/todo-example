@@ -6,7 +6,7 @@
     "dev": "bun run --watch src/index.ts"
   },
   "dependencies": {
-    "elysia": "^1.0.10"
+    "elysia": "^1.0.11"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.2.0",
