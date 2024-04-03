@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia'
+import { Elysia, t } from "elysia";
 
 let TODOS = [
   {
@@ -31,7 +31,7 @@ const app = new Elysia()
     })
     .get('/jsons', () => ({
       hi: 'Elysia'
-  }))
+    }))
     .get("/todos/admin/*", ({params}) => params["*"])
     .get(
       "/todos/:id", 
@@ -100,30 +100,32 @@ const app = new Elysia()
       }
     )
     .patch(
-      '/todos/:id/desc',
+      '/todos/:id',
       ({ params, body, set, error }) => {
-        const todoId = params.id
-        const updatedTodoIndex = TODOS.findIndex(todo => todo.id === todoId)
-
+        const todoId = params.id;
+        const updatedTodoIndex = TODOS.findIndex(todo => todo.id === todoId);
+    
         if (updatedTodoIndex === -1) {
-          return error(404, 'Todo Not Found')
+          return error(404, 'Todo Not Found');
         }
-        
+    
         TODOS[updatedTodoIndex] = { ...TODOS[updatedTodoIndex], ...body }
-
+    
         set.status = 200;
-        return TODOS[updatedTodoIndex]
+        return TODOS[updatedTodoIndex];
       },
       {
         params: t.Object({
           id: t.Numeric()
         }),
         body: t.Object({
-          // Define the properties that can be updated in the body
-          desc: t.String()
+          desc: t.Optional(t.String()),
+          starred: t.Optional(t.Boolean()),
+          completed: t.Optional(t.Boolean())
         }),
       }
     )
+    
     .delete(
       '/todos/:id',
       ({params, error, set}) => {
