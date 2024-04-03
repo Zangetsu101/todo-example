@@ -91,6 +91,45 @@ const app = new Elysia()
       })
     }
   )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      if (!body.desc && !body.starred && !body.completed) {
+        return error(
+          400,
+          'Description, starred, or completed field is required'
+        )
+      }
+
+      const todoToUpdate = TODOS.find((todo) => todo.id === params.id)
+      if (!todoToUpdate) {
+        return error(404, 'Todo not found')
+      }
+
+      if (body.desc !== undefined) {
+        todoToUpdate.desc = body.desc
+      }
+      if (body.starred !== undefined) {
+        todoToUpdate.starred = body.starred
+      }
+      if (body.completed !== undefined) {
+        todoToUpdate.completed = body.completed
+      }
+      console.log(todoToUpdate)
+
+      return todoToUpdate
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        desc: t.Optional(t.String()),
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean())
+      })
+    }
+  )
   .listen(3000)
 
 console.log(
