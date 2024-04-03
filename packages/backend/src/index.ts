@@ -89,7 +89,22 @@ const app = new Elysia()
       })
     }
   )
-  
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todoIndex = TODOS.findIndex((todo) => todo.id === params.id)
+      if (todoIndex === -1) {
+        return error(404)
+      }
+      TODOS.splice(todoIndex, 1)
+      return TODOS
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
   .listen(3000)
 
 console.log(
