@@ -1,6 +1,6 @@
 import { Elysia, t } from 'elysia'
 
-const TODOS = [
+let TODOS = [
   {
     id: 1,
     starred: false,
@@ -25,6 +25,98 @@ const app = new Elysia()
         return error(404)
       }
       return todo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
+  .post(
+    '/todos/',
+    ({ body }) => {
+      const desc = body
+      const newTodo = {
+        id: TODOS.length + 1,
+        starred: false,
+        completed: false,
+        desc: desc
+      }
+      TODOS = [...TODOS, newTodo]
+    },
+    {
+      body: t.String()
+    }
+  )
+  .put(
+    '/todos/:id',
+    ({ params, body }) => {
+      let done = true
+      for (let i = 0; i < TODOS.length; ++i) {
+        if (TODOS[i].id === params.id) {
+          const newTodo = {
+            id: params.id,
+            ...body
+          }
+          TODOS[i] = newTodo
+          done = false
+          break
+        }
+      }
+      if (done) {
+        const newTodo = {
+          id: params.id,
+          ...body
+        }
+        TODOS = [...TODOS, newTodo]
+      }
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      if (TODOS.some((todo) => todo.id === params.id) === false)
+        return error(404, 'Not Found')
+      for (let i = 0; i < TODOS.length; ++i) {
+        if (TODOS[i].id === params.id) {
+          if (body.starred !== TODOS[i].starred) {
+            TODOS[i].starred = body.starred
+          }
+          if (body.completed !== TODOS[i].completed) {
+            TODOS[i].completed = body.completed
+          }
+          if (body.desc !== TODOS[i].desc) {
+            TODOS[i].desc = body.desc
+          }
+        }
+      }
+    },
+    {
+      params: t.Object({ id: t.Numeric() }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      if (TODOS.some((e) => e.id === params.id)) {
+        const newTodo = TODOS.filter((todo) => todo.id != params.id)
+        TODOS = [...newTodo]
+      } else return error(404, 'Not Found')
     },
     {
       params: t.Object({
