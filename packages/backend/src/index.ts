@@ -1,6 +1,4 @@
 import { Elysia, error, t } from 'elysia'
-let id = 2
-
 let TODOS = [
   {
     id: 1,
@@ -15,7 +13,7 @@ let TODOS = [
     desc: 'Brush your teeth'
   }
 ]
-
+let id = TODOS.length
 const app = new Elysia()
   .get('/todos', () => TODOS)
   .get(
@@ -34,13 +32,72 @@ const app = new Elysia()
     }
   )
   .post(
-    '/addTodo',
+    '/todos',
     ({ body }) => {
-      const newTodo = { id: ++id, ...body }
+      const newTodo = { id: ++id, starred: false, completed: false, ...body }
       TODOS.push(newTodo)
       return newTodo
     },
     {
+      body: t.Object({
+        desc: t.String({
+          minLength: 3,
+          maxLength: 2000
+        })
+      })
+    }
+  )
+  .put(
+    'todos/:id',
+    ({ params, body, error }) => {
+      let flag = false
+      let updatedTodo
+      TODOS.map((todo) => {
+        if (todo.id === params.id) {
+          todo = { id: params.id, ...body }
+          updatedTodo = todo
+          flag = true
+          console.log('update done')
+        }
+      })
+      if (!flag) {
+        return error(404, 'No todo record found')
+      }
+      return updatedTodo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .patch(
+    'todos/:id',
+    ({ params, body, error }) => {
+      let flag = false
+      let updatedTodo
+      TODOS.map((todo) => {
+        if (todo.id === params.id) {
+          todo = { id: params.id, ...body }
+          updatedTodo = todo
+          flag = true
+          console.log('update done')
+        }
+      })
+      if (!flag) {
+        return error(404, 'No todo record found')
+      }
+      return updatedTodo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
       body: t.Object({
         starred: t.Boolean(),
         completed: t.Boolean(),
@@ -49,7 +106,7 @@ const app = new Elysia()
     }
   )
   .delete(
-    'deleteTodo/:id',
+    'todos/:id',
     ({ params }) => {
       const todo = TODOS.find((todo) => todo.id === params.id)
       if (!todo) {
@@ -64,6 +121,7 @@ const app = new Elysia()
       })
     }
   )
+
   .listen(3000)
 
 console.log(
