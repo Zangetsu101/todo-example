@@ -15,7 +15,7 @@ const TODOS = [
   }
 ]
 
-let nextTodoId = 3; 
+let nextTodoId = TODOS.length + 1 
 
 const app = new Elysia()
   .get('/todos', () => TODOS)
