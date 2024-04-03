@@ -30,7 +30,12 @@ const app = new Elysia()
   .post(
     '/todos',
     ({ body, store, error }) => {
-      const newTodo = { id: store.id++, ...body }
+      const newTodo = {
+        id: store.id++,
+        starred: false,
+        completed: false,
+        ...body
+      }
       try {
         TODOS = [...TODOS, newTodo]
         return {
@@ -44,12 +49,6 @@ const app = new Elysia()
     },
     {
       body: t.Object({
-        starred: t.Boolean({
-          error: 'Starred must be boolean.'
-        }),
-        completed: t.Boolean({
-          error: 'Completed must be boolean.'
-        }),
         desc: t.String({
           minLength: 3,
           maxLength: 255,
