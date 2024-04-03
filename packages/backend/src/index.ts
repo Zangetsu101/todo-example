@@ -68,6 +68,27 @@ const app = new Elysia()
       })
     }
   )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      Object.assign(todo, body)
+      return todo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+        desc: t.Optional(t.String())
+      })
+    }
+  )
   
   .listen(3000)
 
