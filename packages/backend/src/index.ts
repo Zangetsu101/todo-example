@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia';
+import { Elysia, t } from 'elysia'
 
 const TODOS = [
   {
@@ -13,18 +13,20 @@ const TODOS = [
     completed: false,
     desc: 'Brush your teeth'
   }
-];
+]
+
+let nextTodoId = 3; 
 
 const app = new Elysia()
   .get('/todos', () => TODOS)
   .get(
     '/todos/:id',
     ({ params, error }) => {
-      const todo = TODOS.find((todo) => todo.id === Number(params.id));
+      const todo = TODOS.find((todo) => todo.id === Number(params.id))
       if (!todo) {
-        return error(404);
+        return error(404)
       }
-      return todo;
+      return todo
     },
     {
       params: t.Object({
@@ -36,13 +38,13 @@ const app = new Elysia()
     '/todos',
     ({ body }) => {
       const newTodo = {
-        id: TODOS.length + 1,
+        id: nextTodoId++,
         starred: false,
         completed: false,
         desc: body.desc
-      };
-      TODOS.push(newTodo);
-      return newTodo;
+      }
+      TODOS.push(newTodo)
+      return newTodo
     },
     {
       body: t.Object({
@@ -53,20 +55,20 @@ const app = new Elysia()
   .put(
     '/todos/:id',
     ({ params, body, error }) => {
-      const todo = TODOS.find((todo) => todo.id === Number(params.id));
+      const todo = TODOS.find((todo) => todo.id === Number(params.id))
       if (!todo) {
-        return error(404);
+        return error(404)
       }
       if (body.starred !== undefined) {
-        todo.starred = body.starred;
+        todo.starred = body.starred
       }
       if (body.completed !== undefined) {
-        todo.completed = body.completed;
+        todo.completed = body.completed
       }
       if (body.desc !== undefined) {
-        todo.desc = body.desc;
+        todo.desc = body.desc
       }
-      return todo;
+      return todo
     },
     {
       params: t.Object({
@@ -82,12 +84,12 @@ const app = new Elysia()
   .delete(
     '/todos/:id',
     ({ params, error }) => {
-      const todoIndex = TODOS.findIndex((todo) => todo.id === Number(params.id));
+      const todoIndex = TODOS.findIndex((todo) => todo.id === Number(params.id))
       if (todoIndex === -1) {
-        return error(404);
+        return error(404)
       }
-      TODOS.splice(todoIndex, 1);
-      return { message: 'Todo item deleted successfully.' };
+      TODOS.splice(todoIndex, 1)
+      return { message: 'Todo item deleted successfully.' }
     },
     {
       params: t.Object({
@@ -95,11 +97,11 @@ const app = new Elysia()
       })
     }
   )
-  .listen(3000);
+  .listen(3000)
 
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-);
+)
 
 /*
  * GET /todos
