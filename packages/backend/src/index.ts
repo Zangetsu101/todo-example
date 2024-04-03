@@ -130,6 +130,25 @@ const app = new Elysia()
       })
     }
   )
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todoIndex = TODOS.findIndex((todo) => todo.id === params.id)
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+
+      TODOS.splice(todoIndex, 1)
+
+      return { message: 'Todo deleted successfully' }
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
+
   .listen(3000)
 
 console.log(
