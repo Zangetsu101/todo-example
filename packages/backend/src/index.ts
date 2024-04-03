@@ -83,10 +83,10 @@ const app = new Elysia()
       let updatedTodo
       TODOS.map((todo) => {
         if (todo.id === params.id) {
-          todo = { id: params.id, ...body }
+          if (body.starred != undefined) todo.starred = body.starred
+          if (body.completed != undefined) todo.completed = body.completed
           updatedTodo = todo
           flag = true
-          console.log('update done')
         }
       })
       if (!flag) {
@@ -99,9 +99,8 @@ const app = new Elysia()
         id: t.Numeric()
       }),
       body: t.Object({
-        starred: t.Boolean(),
-        completed: t.Boolean(),
-        desc: t.String()
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean())
       })
     }
   )
@@ -124,9 +123,7 @@ const app = new Elysia()
 
   .listen(3000)
 
-console.log(
-  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
-)
+console.log(`Elysia is running at ${app.server?.hostname}:${app.server?.port}`)
 /*
  * GET /todos
  * GET /todos/123421
