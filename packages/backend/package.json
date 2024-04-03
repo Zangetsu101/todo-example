@@ -2,11 +2,13 @@
   "name": "backend",
   "version": "0.0.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "bun run --watch src/index.ts"
+    "dev": "bun --watch src/index.ts",
+    "build": "bun build src/index.ts",
+    "start": "NODE_ENV=production bun src/index.ts",
+    "test": "bun test"
   },
   "dependencies": {
-    "elysia": "^1.0.10"
+    "elysia": "^1.0.11"
   },
   "devDependencies": {
     "@typescript-eslint/eslint-plugin": "^7.2.0",

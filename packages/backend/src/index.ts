@@ -1,4 +1,4 @@
-import { Elysia, t } from 'elysia'
+import { Elysia, error, t } from 'elysia'
 
 const TODOS = [
   {
@@ -16,6 +16,17 @@ const TODOS = [
 ]
 
 const app = new Elysia()
+  .state('id', 2)
+  .model({
+    paramCheck: t.Object({
+      id: t.Numeric()
+    }),
+    bodyCheck: t.Object({
+      starred: t.Boolean(),
+      completed: t.Boolean(),
+      desc: t.String()
+    })
+  })
   .get('/todos', () => TODOS)
   .get(
     '/todos/:id',
@@ -27,9 +38,67 @@ const app = new Elysia()
       return todo
     },
     {
-      params: t.Object({
-        id: t.Numeric()
-      })
+      params: 'paramCheck'
+    }
+  )
+  .post(
+    '/todos',
+    ({ body, store }) => {
+      const newID = ++store.id
+      const newTodo = { id: newID, ...body }
+      TODOS.push(newTodo)
+      return TODOS
+    },
+    {
+      body: 'bodyCheck'
+    }
+  )
+  .put(
+    '/todos/:id',
+    ({ body, params, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      Object.assign(todo, body)
+      return TODOS
+    },
+    {
+      body: 'bodyCheck',
+      params: 'paramCheck'
+    }
+  )
+  .patch(
+    '/todos/:id',
+    ({ body, params, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      Object.assign(todo, body)
+      return TODOS
+    },
+    {
+      body: t.Object({
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+        desc: t.Optional(t.String())
+      }),
+      params: 'paramCheck'
+    }
+  )
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      TODOS.splice(TODOS.indexOf(todo), 1)
+      return TODOS
+    },
+    {
+      params: 'paramCheck'
     }
   )
   .listen(3000)
