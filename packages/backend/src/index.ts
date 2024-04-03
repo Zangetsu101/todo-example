@@ -1,4 +1,5 @@
 import { Elysia, t } from 'elysia'
+let id = 2
 
 const TODOS = [
   {
@@ -32,6 +33,21 @@ const app = new Elysia()
       })
     }
   )
+  .post(
+    '/addTodo',
+    ({ body }) => {
+      const newTodo = { id: ++id, ...body, }
+      TODOS.push(newTodo)
+      return newTodo
+    },
+    {
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
   .listen(3000)
 
 console.log(
@@ -40,6 +56,7 @@ console.log(
 /*
  * GET /todos
  * GET /todos/123421
+
  * POST /todos
  * PUT /todos/1234321 {}
  * PATCH /todos/12312312 {}
