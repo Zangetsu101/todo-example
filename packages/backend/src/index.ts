@@ -40,9 +40,10 @@ const app = new Elysia()
         const todos = TODOS.filter((todo) => todo.id !== params.id)
         TODOS = todos
         return {"message": "Deletion successful"}
-        },{
-        params: t.Object({
-            id: t.Numeric()
+        },
+        {
+            params: t.Object({
+                id: t.Numeric()
         })
     })
     .post('/todos', ({ params, error, body }) => {
@@ -59,6 +60,12 @@ const app = new Elysia()
         }
         return error(400, 'Todo description is required.');
 
+    }, {
+        body: t.Object({
+            starred: t.Optional(t.Boolean()),
+            completed: t.Optional(t.Boolean()),
+            desc: t.String()
+        })
     })
     .put('/todos/:id', ({params, body, error}) => {
         const todoId = parseInt(params.id);
@@ -78,7 +85,17 @@ const app = new Elysia()
         };
         TODOS[index] = updatedTodo;
         return {"message": "Put update successful."}
-    })
+        },
+        {
+            params: t.Object({
+                id: t.Numeric()
+            }),
+            body: t.Object({
+                starred: t.Boolean(),
+                completed: t.Boolean(),
+                desc: t.String()
+            })
+        })
     .patch('/todos/:id', ({ params, body, error }) => {
         const todoId = parseInt(params.id);
         const index = TODOS.findIndex(todo => todo.id === todoId);
@@ -90,6 +107,15 @@ const app = new Elysia()
             ...body
         };
         return {"message": "Patch update successful."}
+    }, {
+        params: t.Object({
+            id: t.Numeric()
+        }),
+        body: t.Object({
+            starred: t.Optional(t.Boolean()),
+            completed: t.Optional(t.Boolean()),
+            desc: t.Optional(t.String())
+        })
     })
 
   .listen(3000)
