@@ -1,4 +1,7 @@
 import { Elysia, t } from 'elysia'
+import TodoAddDTO from './dtos/TodoAddDTO'
+import TodoUpdateDTO from './dtos/TodoUpdateDTO'
+import TodoPartialUpdateDTO from './dtos/TodoPartialUpdateDTO'
 
 let TODOS = [
   {
@@ -25,152 +28,154 @@ let TODOS = [
  */
 
 const app = new Elysia()
+  .model({
+    params: t.Object({
+      id: t.Numeric()
+    })
+  })
   .state('id', TODOS.length + 1)
   .get('/todos', () => TODOS)
   .post(
     '/todos',
-    ({ body, store, error }) => {
+    ({ body, store, set }) => {
       const newTodo = {
         id: store.id++,
-        starred: false,
-        completed: false,
+        starred: body.starred ? body.starred : false,
+        completed: body.completed ? body.completed : false,
         ...body
       }
+
       try {
         TODOS = [...TODOS, newTodo]
+        set.status = 201
         return {
-          status: 200,
-          message: 'success',
+          success: true,
           data: newTodo
         }
       } catch (e) {
-        return error(500)
+        return {
+          success: false
+        }
       }
     },
     {
-      body: t.Object({
-        desc: t.String({
-          minLength: 3,
-          maxLength: 255,
-          error: 'Description must be 3-255 characters.'
-        })
-      })
+      body: TodoAddDTO
     }
   )
   .get(
     '/todos/:id',
-    ({ params, error }) => {
+    ({ params, set }) => {
       const todo = TODOS.find((todo) => todo.id === params.id)
       if (!todo) {
-        return error(404)
+        set.status = 204
+        return {
+          success: false
+        }
       }
       return todo
     },
     {
-      params: t.Object({
-        id: t.Numeric()
-      })
+      params: 'params'
     }
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
+    ({ params, body, set }) => {
       try {
-        const existing = { id: params.id, ...body }
+        let existing = TODOS.find((todo) => todo.id == params.id)
+
+        if (!existing) {
+          set.status = 204
+          return {
+            success: false
+          }
+        }
+
+        existing = { id: params.id, ...body }
+
         TODOS = TODOS.map((todo) => {
           if (todo.id == params.id) return existing
           return todo
         })
+
         return {
-          status: 200,
-          message: 'success',
+          success: true,
           data: existing
         }
       } catch (e) {
-        return error(500)
+        return {
+          success: false
+        }
       }
     },
     {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        starred: t.Boolean({
-          error: 'Starred must be boolean.'
-        }),
-        completed: t.Boolean({
-          error: 'Completed must be boolean.'
-        }),
-        desc: t.String({
-          minLength: 3,
-          maxLength: 255,
-          error: 'Description must be 3-255 characters.'
-        })
-      })
+      params: 'params',
+      body: TodoUpdateDTO
     }
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
+    ({ params, body, set }) => {
       try {
         let existing = TODOS.find((todo) => params.id == todo.id)
 
         if (!existing) {
-          return error(404, {
-            message: 'error'
-          })
+          set.status = 204
+          return {
+            success: false
+          }
         }
 
-        existing = { ...existing, completed: body.completed }
+        existing = {
+          ...existing,
+          completed: body.completed ? body.completed : false,
+          starred: body.starred ? body.starred : false
+        }
 
         TODOS = TODOS.map((todo) => {
           if (todo.id == params.id) return existing
           return todo
         })
+
         return {
-          status: 200,
-          message: 'success',
+          success: true,
           data: existing
         }
       } catch (e) {
-        return error(500)
+        return {
+          success: false
+        }
       }
     },
     {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        completed: t.Boolean({
-          error: 'Completed must be boolean.'
-        })
-      })
+      params: 'params',
+      body: TodoPartialUpdateDTO
     }
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
+    ({ params, set }) => {
       try {
         const existing = TODOS.find((todo) => params.id == todo.id)
 
         if (!existing) {
-          return error(404, {
-            message: 'error'
-          })
+          set.status = 204
+          return {
+            success: false
+          }
         }
         TODOS = TODOS.filter((todo) => todo.id != params.id)
         return {
-          status: 200,
-          message: 'success'
+          success: true
         }
       } catch (e) {
-        return error(500)
+        return {
+          success: false
+        }
       }
     },
     {
-      params: t.Object({
-        id: t.Numeric()
-      })
+      params: 'params'
     }
   )
 
