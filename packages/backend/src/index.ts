@@ -15,7 +15,9 @@ const TODOS = [
   }
 ]
 
+
 const app = new Elysia()
+  .state('id', 2)
   .get('/todos', () => TODOS)
   .get(
     '/todos/:id',
@@ -35,14 +37,20 @@ const app = new Elysia()
 
   .post(
     '/todos',
-    ({ body }) => {
-      const newTodo = { ...body, id: TODOS.length + 1, starred: false, completed: false }
+    ({ body, store }) => {
+      const newID = ++store.id
+      const newTodo = { ...body, id: newID, starred: false, completed: false }
       TODOS.push(newTodo)
       return newTodo
     },
     {
+      params: t.Object({
+        id: t.Numeric()
+      }),
       body: t.Object({
-        desc: t.String()
+        desc: t.String(),
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
       })
     }
   )
@@ -54,7 +62,7 @@ const app = new Elysia()
       if (todoIndex === -1) {
         return error(404, 'Todo not found')
       }
-      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body, id: params.id }
+      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body }
       return TODOS[todoIndex]
     },
     {
@@ -71,35 +79,26 @@ const app = new Elysia()
 
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === parseInt(params.id))
-      if (todoIndex === -1) {
-        return error(404, 'Todo not found')
+    ({ body, params, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
       }
-  
-      const requestBody: Partial<{
-        desc: string,
-        starred: boolean,
-        completed: boolean
-      }> = body as any;
-  
-      const updatedTodo = { ...TODOS[todoIndex] }
-      if (requestBody.desc !== undefined) {
-        updatedTodo.desc = requestBody.desc
-      }
-      if (requestBody.starred !== undefined) {
-        updatedTodo.starred = requestBody.starred
-      }
-      if (requestBody.completed !== undefined) {
-        updatedTodo.completed = requestBody.completed
-      }
-  
-      TODOS[todoIndex] = updatedTodo
-  
-      return updatedTodo
+      Object.assign(todo, body)
+      return TODOS
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+        desc: t.Optional(t.String())
+      }),
     }
   )
-  
+
   .delete(
     '/todos/:id',
     ({ params, error }) => {
@@ -108,7 +107,7 @@ const app = new Elysia()
         return error(404, 'Todo not found')
       }
       TODOS.splice(todoIndex, 1)
-      return { success: true }
+      return TODOS
     },
     {
       params: t.Object({
