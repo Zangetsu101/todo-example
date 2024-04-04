@@ -51,6 +51,10 @@ const app = new Elysia()
     .post(
       '/todos', 
       ({body, set, store, error}) => {
+          body.desc = body.desc.trim()
+          if(body.desc.length < 3 || body.desc.length > 255) {
+            return error(400, 'Description must be 3-255 characters.');
+          }
           store.id++
           const newTodo = {id: store.id, starred: false, completed: false, ...body}
           TODOS = [...TODOS, newTodo]
@@ -70,6 +74,10 @@ const app = new Elysia()
     .put(
       '/todos/:id',
       ({params, body, set, error}) => {
+          body.desc = body.desc.trim()
+          if(body.desc.length < 3 || body.desc.length > 255) {
+            return error(400, 'Description must be 3-255 characters.');
+          }
           let myTodo = {id: params.id, ...body}
           const updatedTodos = TODOS.map((todo) => {
               if(todo.id === params.id) {
@@ -109,8 +117,17 @@ const app = new Elysia()
           return error(404, 'Todo Not Found');
         }
     
+        if(body.desc) {
+            body.desc = body.desc.trim()
+            if(body.desc.length < 3 || body.desc.length > 255) {
+              return error(400, 'Description must be 3-255 characters.');
+            }
+        }
+
         TODOS[updatedTodoIndex] = { ...TODOS[updatedTodoIndex], ...body }
-    
+        
+        
+
         set.status = 200;
         return TODOS[updatedTodoIndex];
       },
