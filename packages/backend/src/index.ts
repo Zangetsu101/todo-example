@@ -55,32 +55,54 @@ const app = new Elysia()
   .put(
     '/todos/:id',
     ({ params, body, error }) => {
-      const todo = TODOS.find((todo) => todo.id === Number(params.id))
-      if (!todo) {
-        return error(404)
+      const todoIndex = TODOS.findIndex((todo) => todo.id === Number(params.id));
+      if (todoIndex === -1) {
+        return error(404);
       }
-      if (body.starred !== undefined) {
-        todo.starred = body.starred
-      }
-      if (body.completed !== undefined) {
-        todo.completed = body.completed
-      }
-      if (body.desc !== undefined) {
-        todo.desc = body.desc
-      }
-      return todo
+      TODOS[todoIndex] = { id: Number(params.id), ...body };
+      return TODOS[todoIndex];
     },
     {
       params: t.Object({
         id: t.Numeric()
       }),
       body: t.Object({
+        id: t.Optional(t.Numeric()),
         starred: t.Boolean(),
         completed: t.Boolean(),
         desc: t.String()
       })
     }
   )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todo = TODOS.find((todo) => todo.id === Number(params.id));
+      if (!todo) {
+        return error(404);
+      }
+      if (body.starred !== undefined) {
+        todo.starred = body.starred;
+      }
+      if (body.completed !== undefined) {
+        todo.completed = body.completed;
+      }
+      if (body.desc !== undefined) {
+        todo.desc = body.desc;
+      }
+      return todo;
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+        desc: t.Optional(t.String())
+      })
+    }
+  ) 
   .delete(
     '/todos/:id',
     ({ params, error }) => {
