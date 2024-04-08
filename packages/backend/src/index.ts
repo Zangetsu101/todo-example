@@ -32,6 +32,80 @@ const app = new Elysia()
       })
     }
   )
+  .post(
+    '/todos',
+    ({ body }) => {
+      const id = Math.max(...TODOS.map(todo => todo.id), 0) + 1;
+      TODOS.push({ id, ...body });
+      return { id, ...body };
+    },
+    {
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  
+  .put(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const index = TODOS.findIndex(todo => todo.id === Number(params.id));
+      if (index === -1) {
+        return error(404);
+      }
+      TODOS[index] = { id: Number(params.id), ...body };
+      return TODOS[index];
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const index = TODOS.findIndex(todo => todo.id === Number(params.id));
+      if (index === -1) {
+        return error(404);
+      }
+      TODOS[index] = { ...TODOS[index], ...body };
+      return TODOS[index];
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const index = TODOS.findIndex(todo => todo.id === Number(params.id));
+      if (index === -1) {
+        return error(404);
+      }
+      TODOS.splice(index, 1);
+      return { success: true };
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
   .listen(3000)
 
 console.log(
