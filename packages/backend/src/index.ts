@@ -1,134 +1,144 @@
 import { Elysia, t } from 'elysia'
 
 const todoList = [
-    {
-        id: 1,
-        starred: false,
-        completed: false,
-        desc: 'Wake up at 5am'
-    },
-    {
-        id: 2,
-        starred: false,
-        completed: false,
-        desc: 'Brush your teeth'
-    },
-    {
-        id: 3,
-        starred: false,
-        completed: false,
-        desc: "I don't know what to do!"
-    },
-    {
-        id: 4,
-        starred: true,
-        completed: true,
-        desc: "Yeah, I don't know yet!"
-    }
+  {
+    id: 1,
+    starred: false,
+    completed: false,
+    desc: 'Wake up at 5am'
+  },
+  {
+    id: 2,
+    starred: false,
+    completed: false,
+    desc: 'Brush your teeth'
+  },
+  {
+    id: 3,
+    starred: false,
+    completed: false,
+    desc: "I don't know what to do!"
+  },
+  {
+    id: 4,
+    starred: true,
+    completed: true,
+    desc: "Yeah, I don't know yet!"
+  }
 ]
 
-let idIncrementor = 5;
+let idIncrementor = 5
 
 const app = new Elysia()
-    .get('/todos', () => todoList)
-    .get( '/todos/:id', ({ params, error }) =>
-    {
-        const todo = todoList.find((todo) => todo.id === params.id)
+  .get('/todos', () => todoList)
+  .get(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
 
-        if (!todo) {
-            return error(404, 'Todo not found.')
-        }
+      if (!todo) {
+        return error(404, 'Todo not found.')
+      }
 
-        return todo;
+      return todo
     },
     {
-        params: t.Object({
-            id: t.Numeric()
-        })
-    })
-    .post('/todos/create', ({ body, error }) =>
-    {
-        const newTodo = {
-            id: idIncrementor++,
-            starred: false,
-            completed: false,
-            ...body
-        }
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
+  .post(
+    '/todos/create',
+    ({ body, error }) => {
+      const newTodo = {
+        id: idIncrementor++,
+        starred: false,
+        completed: false,
+        ...body
+      }
 
-        todoList.push(newTodo);
+      todoList.push(newTodo)
 
-        return newTodo;
+      return newTodo
     },
     {
-        body: t.Object({
-            desc: t.String()
-        })
-    })
-    .put('/todos/:id', ({ params, body, error }) =>
-    {
-        const todo = todoList.find((todo) => todo.id === params.id);
+      body: t.Object({
+        desc: t.String()
+      })
+    }
+  )
+  .put(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
 
-        if (!todo) {
-            return error(204, 'Todo can not be updated.');
-        }
+      if (!todo) {
+        return error(204, 'Todo can not be updated.')
+      }
 
-        Object.assign(todo, body);
+      Object.assign(todo, body)
 
-        return todo;
+      return todo
     },
     {
-        params: t.Object({
-            id: t.Numeric()
-        }),
-        body: t.Object({
-            starred: t.Boolean(),
-            completed: t.Boolean(),
-            desc: t.String()
-        })
-    })
-    .patch('/todos/:id', ({ params, body, error }) =>
-    {
-        const todo = todoList.find((todo) => todo.id === params.id);
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Boolean(),
+        completed: t.Boolean(),
+        desc: t.String()
+      })
+    }
+  )
+  .patch(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
 
-        if (!todo) {
-            return error(204, 'Todo can not be updated.');
-        }
+      if (!todo) {
+        return error(204, 'Todo can not be updated.')
+      }
 
-        Object.assign(todo, body);
+      Object.assign(todo, body)
 
-        return todo;
+      return todo
     },
     {
-        params: t.Object({
-            id: t.Numeric()
-        }),
-        body: t.Object({
-            desc: t.Optional(t.String()),
-            starred: t.Optional(t.Boolean()),
-            completed: t.Optional(t.Boolean())
-        })
-    })
-    .delete('/todos/:id', ({ params, error }) =>
-    {
-        const todo = todoList.find((todo) => todo.id === params.id);
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        desc: t.Optional(t.String()),
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean())
+      })
+    }
+  )
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
 
-        if (!todo) {
-            return error(204, 'Todo can not be deleted.');
-        }
-        
-        todoList.splice(todoList.indexOf(todo), 1);
-        
-        return todo;
+      if (!todo) {
+        return error(204, 'Todo can not be deleted.')
+      }
+
+      todoList.splice(todoList.indexOf(todo), 1)
+
+      return todo
     },
     {
-        params: t.Object({
-            id: t.Numeric()
-        })
-    })
-    .listen(3000)
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
+  .listen(3000)
 
 console.log(
-    `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
+  `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 )
 
 /*
