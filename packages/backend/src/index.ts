@@ -1,5 +1,10 @@
 import cors from '@elysiajs/cors'
 import { Elysia, t } from 'elysia'
+import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
+import { db } from './db/db'
+import { todos } from './db/schema'
+
+migrate(db, { migrationsFolder: './drizzle' })
 
 const todoList = [
   {
@@ -32,7 +37,7 @@ let idIncrementor = 5
 
 const app = new Elysia()
   .use(cors())
-  .get('/todos', () => todoList)
+  .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
     ({ params, error }) => {
@@ -51,8 +56,8 @@ const app = new Elysia()
     }
   )
   .post(
-    '/todos/create',
-    ({ body }) => {
+    '/todos',
+    async ({ body }) => {
       const newTodo = {
         id: idIncrementor++,
         starred: false,
@@ -60,7 +65,7 @@ const app = new Elysia()
         ...body
       }
 
-      todoList.push(newTodo)
+      await db.insert(todos).values(newTodo)
 
       return newTodo
     },
