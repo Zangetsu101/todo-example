@@ -33,8 +33,6 @@ const todoList = [
   }
 ]
 
-let idIncrementor = 5
-
 const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
@@ -57,17 +55,9 @@ const app = new Elysia()
   )
   .post(
     '/todos',
-    async ({ body }) => {
-      const newTodo = {
-        id: idIncrementor++,
-        starred: false,
-        completed: false,
-        ...body
-      }
-
-      await db.insert(todos).values(newTodo)
-
-      return newTodo
+    async ({ body, set }) => {
+      await db.insert(todos).values(body)
+      set.status = 'Created'
     },
     {
       body: t.Object({
