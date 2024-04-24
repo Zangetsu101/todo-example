@@ -79,33 +79,51 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          res.error
+        } else {
+          setTodos(todos.filter((todo) => todo.id !== id))
+        }
+      })
+  }
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
+  interface IUpdateProperties {
+    starred?: boolean
+    completed?: boolean
+  }
 
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
+  const updateTodo = (id: number, props: IUpdateProperties) => {
+    client
+      .todos({ id })
+      .patch({ ...props })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(todos.map((todo) => (todo.id === id ? res.data : todo)))
+        }
+      })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
+    client.todos
+      .post({
+        desc: inputRef.current!.value
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos([...todos, res.data])
+        }
+      })
     inputRef.current!.value = ''
   }
 
@@ -124,7 +142,9 @@ function App() {
                 <Checkbox
                   id={todo.id.toString()}
                   checked={todo.completed}
-                  onCheckedChange={() => toggleChecked(todo.id)}
+                  onCheckedChange={() =>
+                    updateTodo(todo.id, { completed: !todo.completed })
+                  }
                 />
               </TableCell>
               <TableCell>
@@ -134,7 +154,9 @@ function App() {
                 <Star
                   id={todo.id}
                   starred={todo.starred}
-                  toggleStar={toggleStar}
+                  toggleStar={() =>
+                    updateTodo(todo.id, { starred: !todo.starred })
+                  }
                 />
                 <Delete id={todo.id} onDelete={handleDelete} />
               </TableCell>
