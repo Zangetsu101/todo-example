@@ -1,5 +1,7 @@
 import { Elysia, t } from 'elysia'
 
+let noteId = 3
+
 let TODOS = [
   {
     id: 1,
@@ -37,7 +39,7 @@ const app = new Elysia()
     ({ body }) => {
       const desc = body
       const newTodo = {
-        id: TODOS.length + 1,
+        id: noteId++,
         starred: false,
         completed: false,
         desc: desc
@@ -50,12 +52,12 @@ const app = new Elysia()
   )
   .put(
     '/todos/:id',
-    ({ params, body }) => {
+    ({ params: { id }, body }) => {
       let done = true
       for (let i = 0; i < TODOS.length; ++i) {
-        if (TODOS[i].id === params.id) {
+        if (TODOS[i].id === id) {
           const newTodo = {
-            id: params.id,
+            id: id,
             ...body
           }
           TODOS[i] = newTodo
@@ -65,7 +67,7 @@ const app = new Elysia()
       }
       if (done) {
         const newTodo = {
-          id: params.id,
+          id: id,
           ...body
         }
         TODOS = [...TODOS, newTodo]
@@ -89,13 +91,13 @@ const app = new Elysia()
         return error(404, 'Not Found')
       for (let i = 0; i < TODOS.length; ++i) {
         if (TODOS[i].id === params.id) {
-          if (body.starred !== TODOS[i].starred) {
+          if (body.starred !== undefined) {
             TODOS[i].starred = body.starred
           }
-          if (body.completed !== TODOS[i].completed) {
+          if (body.completed !== undefined) {
             TODOS[i].completed = body.completed
           }
-          if (body.desc !== TODOS[i].desc) {
+          if (body.desc !== undefined) {
             TODOS[i].desc = body.desc
           }
         }
@@ -104,8 +106,8 @@ const app = new Elysia()
     {
       params: t.Object({ id: t.Numeric() }),
       body: t.Object({
-        starred: t.Boolean(),
-        completed: t.Boolean(),
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
         desc: t.String()
       })
     }
