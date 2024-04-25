@@ -63,7 +63,6 @@ function Star({
 type Todo = NonNullable<
   Awaited<ReturnType<typeof client.todos.get>>['data']
 >[number]
-
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
@@ -79,34 +78,97 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    const todoToDelete = todos.find(todo => todo.id === id);
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
+    setTodos(prevTodos => prevTodos.filter((todo) => todo.id !== id))
 
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
+    client.todos({ id }).delete().then((res) => {
+      if (res.error) {
+        if (todoToDelete) {
+          setTodos(prevTodos => [...prevTodos, { ...todoToDelete }])
+        }
+      }
+
+    })
+
+
+  }
+
+  const toggleStar = (id: number) => {
+
+    const currentStarredValue = todos.find(todo => todo.id === id)?.starred;
+    setTodos(prevTodos => prevTodos.map(todo =>
+      todo.id === id ? { ...todo, starred: !todo.starred } : todo
+    ));
+
+    if (currentStarredValue !== undefined) {
+
+      client.todos({ id }).patch({ starred: !currentStarredValue })
+        .then((res) => {
+          if (res.error) {
+            if (currentStarredValue) {
+              setTodos(prevTodos => prevTodos.map(todo =>
+                todo.id === id ? { ...todo, starred: currentStarredValue } : todo
+              ));
+            }
+          }
+        })
+    }
+  }
+
+  const toggleChecked = (id: number) => {
+    const currentCompletedValue = todos.find(todo => todo.id === id)?.completed;
+    setTodos(prevTodos => prevTodos.map(todo =>
+      todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    ));
+
+    if (currentCompletedValue !== undefined) {
+
+      client.todos({ id }).patch({ completed: !currentCompletedValue })
+        .then((res) => {
+          if (res.error) {
+            if (currentCompletedValue) {
+              setTodos(prevTodos => prevTodos.map(todo =>
+                todo.id === id ? { ...todo, completed: currentCompletedValue } : todo
+              ));
+            }
+          }
+        })
+    }
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
+
+    let newTodo = {
+
+      desc: inputRef.current!.value,
+      starred: false,
+      completed: false
+    }
+    setTodos(prevTodos => [
+      ...prevTodos,
       {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
+        id: 420,
+        ...newTodo
       }
-    ])
-    inputRef.current!.value = ''
+    ]);
+
+    client.todos.add.post(newTodo).then((res) => {
+      if (res.error) {
+        setTodos(prevTodos => prevTodos.filter((todo) => todo.id !== 420))
+
+      }
+      if (res.data) {
+        const newTodoId = res.data.id;
+        setTodos(prevTodos => prevTodos.map(todo =>
+          todo.id === 420 ? { ...todo, id: newTodoId } : todo
+        ));
+        inputRef.current!.value = ''
+
+
+      }
+    })
   }
 
   return (
