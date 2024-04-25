@@ -42,11 +42,11 @@ function Star({
 }: {
   id: number
   starred: boolean
-  toggleStar: (id: number) => void
+  toggleStar: (id: number, starred: boolean) => void
 }) {
   return (
     <Button
-      onClick={() => toggleStar(id)}
+      onClick={() => toggleStar(id, starred)}
       variant="ghost"
       size="icon"
       className="rounded-3xl"
@@ -69,6 +69,10 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
+    getAllTodos()
+  }, [])
+
+  const getAllTodos = () => {
     client.todos.get().then((res) => {
       if (res.error) {
         res.error
@@ -77,35 +81,78 @@ function App() {
         setTodos(res.data)
       }
     })
-  }, [])
+  }
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = async (id: number) => {
+    const { error } = await client.todos({ id }).delete()
+    if (error) {
+      switch (error.status) {
+        case 204:
+          throw error.value
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
-
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
-
-  const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
+        default:
+          throw error.value
       }
-    ])
+    } else {
+      getAllTodos()
+    }
+  }
+
+  const toggleStar = async (id: number, starred: boolean) => {
+    const { error } = await client.todos({ id }).patch({ starred: !starred })
+    if (error) {
+      switch (error.status) {
+        case 204:
+          throw error.value
+
+        default:
+          throw error.value
+      }
+    } else {
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, starred: !todo.starred } : todo
+        )
+      )
+    }
+  }
+
+  const toggleChecked = async (id: number, completed: boolean) => {
+    const { error } = await client
+      .todos({ id })
+      .patch({ completed: !completed })
+    if (error) {
+      switch (error.status) {
+        case 204:
+          throw error.value
+
+        default:
+          throw error.value
+      }
+    } else {
+      setTodos(
+        todos.map((todo) =>
+          todo.id === id ? { ...todo, completed: !todo.completed } : todo
+        )
+      )
+    }
+  }
+
+  const addTodo = async () => {
+    const { data, error } = await client.todos.post({
+      desc: inputRef.current!.value
+    })
+    console.log(data)
+    if (error)
+      switch (error.status) {
+        case 400:
+          // Error type will be narrow down
+          throw error.value
+
+        default:
+          throw error.value
+      }
+    else getAllTodos()
     inputRef.current!.value = ''
   }
 
@@ -124,7 +171,7 @@ function App() {
                 <Checkbox
                   id={todo.id.toString()}
                   checked={todo.completed}
-                  onCheckedChange={() => toggleChecked(todo.id)}
+                  onCheckedChange={() => toggleChecked(todo.id, todo.completed)}
                 />
               </TableCell>
               <TableCell>
