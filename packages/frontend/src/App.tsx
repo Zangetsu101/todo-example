@@ -5,14 +5,14 @@ import {
   TableCell,
   TableRow
 } from '@/components/ui/table'
-import { Checkbox } from './components/ui/checkbox'
-import { Label } from './components/ui/label'
-import { Button } from './components/ui/button'
+import { treaty } from '@elysiajs/eden'
+import type { App } from 'backend/src/index'
 import { StarIcon, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
+import { Button } from './components/ui/button'
+import { Checkbox } from './components/ui/checkbox'
 import { Input } from './components/ui/input'
-import type { App } from 'backend/src/index'
-import { treaty } from '@elysiajs/eden'
+import { Label } from './components/ui/label'
 
 const client = treaty<App>('localhost:3000')
 
@@ -79,33 +79,85 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          res.error
+        } else {
+          setTodos(todos.filter((todo) => todo.id !== id))
+        }
+      })
+  }
+  const toggleStar = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
+    if (!todo) {
+      return
+    }
+    client
+      .todos({ id })
+      .patch({
+        ...todo,
+        starred: !todo.starred
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(
+            todos.map((todo) =>
+              todo.id === id ? { ...todo, starred: !todo.starred } : todo
+            )
+          )
+        }
+      })
+  }
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
-
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
+  const toggleChecked = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
+    if (!todo) {
+      return
+    }
+    client
+      .todos({ id })
+      .patch({
+        ...todo,
+        completed: !todo.completed
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(
+            todos.map((todo) =>
+              todo.id === id ? { ...todo, completed: !todo.completed } : todo
+            )
+          )
+        }
+      })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
+    const desc = inputRef.current?.value
+    if (!desc) {
+      return
+    }
+    client.todos
+      .post({
+        desc: inputRef.current!.value
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos([...todos, ...res.data])
+        }
+      })
     inputRef.current!.value = ''
   }
 
