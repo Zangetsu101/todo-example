@@ -86,8 +86,7 @@ function App() {
       .then((res) => {
         if (res.error) {
           res.error
-        }
-        if (res.data) {
+        } else {
           setTodos(todos.filter((todo) => todo.id !== id))
         }
       })
