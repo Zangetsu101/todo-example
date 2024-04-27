@@ -118,15 +118,15 @@ return todo
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      const [todo] = await db
+        .delete(todos)
+        .where(eq(todos.id, params.id))
+        .returning()
 
       if (!todo) {
         return error(204, 'Todo can not be deleted.')
       }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
       return todo
     },
     {

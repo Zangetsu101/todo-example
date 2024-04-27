@@ -79,8 +79,19 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    client
+      .todos({ id: id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(todos.filter((todo) => todo.id !== res.data.id))
+        }
+      })
+  }
 
   const toggleStar = (id: number) => {
     const currentTodo = todos.find((todo) => todo.id === id)
