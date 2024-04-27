@@ -12,8 +12,11 @@ const app = new Elysia()
   .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      const [todo] = await db
+        .select()
+        .from(todos)
+        .where(eq(todos.id, params.id))
 
       if (!todo) {
         return error(404, 'Todo not found.')
