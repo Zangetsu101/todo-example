@@ -8,7 +8,7 @@ import {
 import { Checkbox } from './components/ui/checkbox'
 import { Label } from './components/ui/label'
 import { Button } from './components/ui/button'
-import { StarIcon, Trash2 } from 'lucide-react'
+import { Loader2Icon, StarIcon, Trash2 } from 'lucide-react'
 import {
   useEffect,
   useOptimistic,
@@ -19,7 +19,6 @@ import {
 import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
-import { cn } from './lib/utils'
 
 const client = treaty<App>('localhost:3000')
 
@@ -38,6 +37,18 @@ function Delete({
       className="rounded-3xl"
     >
       <Trash2 className="h-4 w-4 text-red-500" />
+    </Button>
+  )
+}
+
+function Spinner() {
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      className="pointer-events-none rounded-3xl"
+    >
+      <Loader2Icon className="h-4 w-4 animate-spin duration-500" />
     </Button>
   )
 }
@@ -207,34 +218,27 @@ function App() {
             ...todosOptimistic.filter(({ starred }) => starred),
             ...todosOptimistic.filter(({ starred }) => !starred)
           ].map((todo) => (
-            <div className="flex flex-col">
-              <TableRow key={todo.id}>
-                <TableCell>
-                  <Checkbox
-                    id={todo.id.toString()}
-                    checked={todo.completed}
-                    onCheckedChange={() => toggleChecked(todo.id)}
-                  />
-                </TableCell>
-                <TableCell>
-                  <Label htmlFor={todo.id.toString()}>{todo.desc}</Label>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Star
-                    id={todo.id}
-                    starred={todo.starred}
-                    toggleStar={toggleStar}
-                  />
-                  <Delete id={todo.id} onDelete={handleDelete} />
-                </TableCell>
-              </TableRow>
-              <div
-                className={cn(
-                  'flex h-0 w-full animate-pulse bg-gray-300 duration-500',
-                  todo.pending && 'h-2'
-                )}
-              ></div>
-            </div>
+            <TableRow className="" key={todo.id}>
+              <TableCell>
+                <Checkbox
+                  id={todo.id.toString()}
+                  checked={todo.completed}
+                  onCheckedChange={() => toggleChecked(todo.id)}
+                />
+              </TableCell>
+              <TableCell>
+                <Label htmlFor={todo.id.toString()}>{todo.desc}</Label>
+              </TableCell>
+              <TableCell className="text-right">
+                <Star
+                  id={todo.id}
+                  starred={todo.starred}
+                  toggleStar={toggleStar}
+                />
+                <Delete id={todo.id} onDelete={handleDelete} />
+                {todo.pending && <Spinner />}
+              </TableCell>
+            </TableRow>
           ))}
         </TableBody>
       </Table>
