@@ -34,6 +34,7 @@ const todoList = [
 ]
 
 
+
 const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
@@ -126,6 +127,87 @@ const app = new Elysia()
       todoList.splice(todoList.indexOf(todo), 1)
 
       return todo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      })
+    }
+  )
+
+  .post(
+    '/todos',
+    ({ body, store }) => {
+      const newID = ++store.id
+      const newTodo = { ...body, id: newID, starred: false, completed: false }
+      TODOS.push(newTodo)
+      return newTodo
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        desc: t.String(),
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+      })
+    }
+  )
+
+  .put(
+    '/todos/:id',
+    ({ params, body, error }) => {
+      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body }
+      return TODOS[todoIndex]
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        desc: t.String(),
+        starred: t.Boolean(),
+        completed: t.Boolean()
+      })
+    }
+  )
+
+  .patch(
+    '/todos/:id',
+    ({ body, params, error }) => {
+      const todo = TODOS.find((todo) => todo.id === params.id)
+      if (!todo) {
+        return error(404)
+      }
+      Object.assign(todo, body)
+      return TODOS
+    },
+    {
+      params: t.Object({
+        id: t.Numeric()
+      }),
+      body: t.Object({
+        starred: t.Optional(t.Boolean()),
+        completed: t.Optional(t.Boolean()),
+        desc: t.Optional(t.String())
+      }),
+    }
+  )
+
+  .delete(
+    '/todos/:id',
+    ({ params, error }) => {
+      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
+      if (todoIndex === -1) {
+        return error(404, 'Todo not found')
+      }
+      TODOS.splice(todoIndex, 1)
+      return TODOS
     },
     {
       params: t.Object({
