@@ -105,11 +105,11 @@ function App() {
           res.error
         }
         if (res.data) {
-    setTodos(
-      todos.map((todo) =>
+          setTodos(
+            todos.map((todo) =>
               todo.id === id ? { ...todo, starred: res.data.starred } : todo
-      )
-    )
+            )
+          )
         }
       })
   }
@@ -126,11 +126,11 @@ function App() {
           res.error
         }
         if (res.data) {
-    setTodos(
-      todos.map((todo) =>
+          setTodos(
+            todos.map((todo) =>
               todo.id === id ? { ...todo, completed: res.data.completed } : todo
-      )
-    )
+            )
+          )
         }
       })
   }
@@ -146,7 +146,7 @@ function App() {
         }
       })
       inputRef.current.value = ''
-}
+    }
   }
 
   return (
