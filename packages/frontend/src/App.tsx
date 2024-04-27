@@ -97,16 +97,17 @@ function App() {
     )
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
-    inputRef.current!.value = ''
+    if (inputRef.current && inputRef.current.value != '') {
+      client.todos.post({ desc: inputRef.current.value }).then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos([...todos, res.data])
+        }
+      })
+      inputRef.current.value = ''
+}
   }
 
   return (

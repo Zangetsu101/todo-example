@@ -56,8 +56,9 @@ const app = new Elysia()
   .post(
     '/todos',
     async ({ body, set }) => {
-      await db.insert(todos).values(body)
+      const [todo] = await db.insert(todos).values(body).returning()
       set.status = 'Created'
+return todo
     },
     {
       body: t.Object({
