@@ -82,19 +82,47 @@ function App() {
   const handleDelete = (id: number) =>
     setTodos(todos.filter((todo) => todo.id !== id))
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
+  const toggleStar = (id: number) => {
+    const currentTodo = todos.find((todo) => todo.id === id)
+    if (!currentTodo) return
 
-  const toggleChecked = (id: number) =>
+    client
+      .todos({ id: id })
+      .patch({ starred: !currentTodo.starred })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
     setTodos(
       todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+              todo.id === id ? { ...todo, starred: res.data.starred } : todo
       )
     )
+        }
+      })
+  }
+
+  const toggleChecked = (id: number) => {
+    const currentTodo = todos.find((todo) => todo.id === id)
+    if (!currentTodo) return
+
+    client
+      .todos({ id: id })
+      .patch({ completed: !currentTodo.completed })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+    setTodos(
+      todos.map((todo) =>
+              todo.id === id ? { ...todo, completed: res.data.completed } : todo
+      )
+    )
+        }
+      })
+  }
 
   const addTodo = () => {
     if (inputRef.current && inputRef.current.value != '') {

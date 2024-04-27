@@ -93,15 +93,16 @@ return todo
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      const [todo] = await db
+        .update(todos)
+        .set(body)
+        .where(eq(todos.id, params.id))
+        .returning()
 
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
-
-      Object.assign(todo, body)
-
       return todo
     },
     {
