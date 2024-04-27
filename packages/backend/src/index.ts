@@ -3,6 +3,7 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
@@ -35,17 +36,22 @@ const todoList = [
 
 const app = new Elysia()
   .use(cors())
-  .get('/todos', () => db.select().from(todos))
+  .get('/todos', async () => await db.select().from(todos))
   .get(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(404, 'Todo not found.')
+    async ({ params, error }) => {
+      try {
+        const todo = await db
+          .select()
+          .from(todos)
+          .where(eq(todos.id, params.id))
+        if (!todo.length) {
+          return error(404, 'Todo not found.')
+        }
+        return todo
+      } catch (err) {
+        return error(500, 'Internal server error.')
       }
-
-      return todo
     },
     {
       params: t.Object({
@@ -55,28 +61,44 @@ const app = new Elysia()
   )
   .post(
     '/todos',
-    async ({ body, set }) => {
-      await db.insert(todos).values(body)
-      set.status = 'Created'
+    async ({ body, set, error }) => {
+      try {
+        const newTodo = await db.insert(todos).values(body).returning()
+        set.status = 'Created'
+        return newTodo
+      } catch (err) {
+        return error(500)
+      }
     },
     {
       body: t.Object({
-        desc: t.String()
+        desc: t.String(),
+        completed: t.Optional(t.Boolean()),
+        starred: t.Optional(t.Boolean())
       })
     }
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+    async ({ params, body, error, set }) => {
+      try {
+        const updatedTodo = await db
+          .update(todos)
+          .set({
+            desc: body.desc,
+            starred: body.starred,
+            completed: body.completed
+          })
+          .where(eq(todos.id, params.id))
+          .returning()
+        if (!updatedTodo.length) {
+          return error(204)
+        }
+        set.status = 202
+        return updatedTodo
+      } catch (err) {
+        return error(500)
       }
-
-      Object.assign(todo, body)
-
-      return todo
     },
     {
       params: t.Object({
@@ -91,16 +113,28 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+    async ({ params, body, error }) => {
+      const [oldTodo] = await db
+        .select()
+        .from(todos)
+        .where(eq(todos.id, params.id))
+      if (!oldTodo) {
+        return error(204)
       }
-
-      Object.assign(todo, body)
-
-      return todo
+      try {
+        const todo = await db
+          .update(todos)
+          .set({
+            starred: body.starred,
+            desc: body.desc,
+            completed: body.completed
+          })
+          .where(eq(todos.id, params.id))
+          .returning()
+        return todo
+      } catch (err) {
+        return error(500)
+      }
     },
     {
       params: t.Object({
@@ -115,16 +149,16 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(204, 'Todo can not be deleted.')
+    async ({ params, error }) => {
+      // const todo = todoList.find((todo) => todo.id === params.id)
+      const deletedUser = await db
+        .delete(todos)
+        .where(eq(todos.id, params.id))
+        .returning()
+      if (!deletedUser.length) {
+        return error(204)
       }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
+      return deletedUser
     },
     {
       params: t.Object({
