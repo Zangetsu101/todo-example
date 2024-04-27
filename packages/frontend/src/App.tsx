@@ -79,33 +79,78 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    client
+        .todos({ id })
+        .delete()
+        .then((res) => {
+          if (res.error) {
+            res.error
+          } else {
+            setTodos(todos.filter((todo) => todo.id !== id))
+          }
+        })
+  }
+  const toggleStar = (id: number) =>{
+    const todo = todos.find((todo) => todo.id === id)
+    if (!todo) {
+      return
+    }
+    client
+        .todos({ id })
+        .patch(
+            { starred: !todo.starred}
+        )
+        .then((res) => {
+          if (res.error) {
+            res.error
+          } else {
+            setTodos(
+                todos.map((todo) =>
+                    todo.id === id ? { ...todo, starred: !todo.starred } : todo
+                )
+            )
+          }
+        })
+  }
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
 
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
+  const toggleChecked = (id: number) =>{
+    const todo = todos.find((todo) => todo.id === id)
+    if (!todo) {
+      return
+    }
+    client
+        .todos({ id })
+        .patch(
+            { completed: !todo.completed}
+        )
+        .then((res) => {
+          if (res.error) {
+            res.error
+          } else {
+            setTodos(
+                todos.map((todo) =>
+                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                )
+            )
+          }
+        })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
+    client.todos
+        .post({
+          desc: inputRef.current!.value
+        })
+        .then((res) => {
+          if (res.error) {
+            res.error
+          }
+          if (res.data) {
+            setTodos([...todos, res.data])
+          }
+        })
     inputRef.current!.value = ''
   }
 

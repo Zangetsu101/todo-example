@@ -1,0 +1,4 @@
+export declare const originUUID = "00000000-0000-0000-0000-000000000000";
+export declare const snapshotVersion = "5";
+export declare function assertUnreachable(x: never): never;
+export declare const mapValues: <IN, OUT>(obj: Record<string, IN>, map: (input: IN) => OUT) => Record<string, OUT>;
