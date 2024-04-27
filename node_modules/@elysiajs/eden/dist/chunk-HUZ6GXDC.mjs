@@ -1,1 +1,0 @@
-var c=(t,e,r)=>{if(t.endsWith("/")||(t+="/"),e==="index"&&(e=""),!r||!Object.keys(r).length)return`${t}${e}`;let s="";for(let[i,u]of Object.entries(r))s+=`${i}=${u}&`;return`${t}${e}?${s.slice(0,-1)}`},o=t=>t.trim().length!==0&&!Number.isNaN(Number(t));var n=class extends Error{constructor(r,s){super(s+"");this.status=r;this.value=s}};export{c as a,o as b,n as c};
