@@ -1,5 +1,6 @@
 import cors from '@elysiajs/cors'
 import { Elysia, t } from 'elysia'
+import { eq } from 'drizzle-orm'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
@@ -33,8 +34,6 @@ const todoList = [
   }
 ]
 
-
-
 const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
@@ -55,11 +54,13 @@ const app = new Elysia()
       })
     }
   )
+
   .post(
     '/todos',
     async ({ body, set }) => {
-      await db.insert(todos).values(body)
+      const newTodo = await db.insert(todos).values(body).returning()
       set.status = 'Created'
+      return newTodo
     },
     {
       body: t.Object({
@@ -67,18 +68,25 @@ const app = new Elysia()
       })
     }
   )
+
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      const todo = await db
+        .select()
+        .from(todos)
+        .where(eq(todos.id, params.id))
 
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
 
-      Object.assign(todo, body)
+      const updatedTodo = await db
+        .update(todos)
+        .set(body)
+        .where(eq(todos.id, params.id))
+        .returning()
 
-      return todo
     },
     {
       params: t.Object({
@@ -91,101 +99,20 @@ const app = new Elysia()
       })
     }
   )
-  .patch(
-    '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
-      }
-
-      Object.assign(todo, body)
-
-      return todo
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        desc: t.Optional(t.String()),
-        starred: t.Optional(t.Boolean()),
-        completed: t.Optional(t.Boolean())
-      })
-    }
-  )
-  .delete(
-    '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
-      if (!todo) {
-        return error(204, 'Todo can not be deleted.')
-      }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      })
-    }
-  )
-
-  .post(
-    '/todos',
-    ({ body, store }) => {
-      const newID = ++store.id
-      const newTodo = { ...body, id: newID, starred: false, completed: false }
-      TODOS.push(newTodo)
-      return newTodo
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        desc: t.String(),
-        starred: t.Optional(t.Boolean()),
-        completed: t.Optional(t.Boolean()),
-      })
-    }
-  )
-
-  .put(
-    '/todos/:id',
-    ({ params, body, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
-      if (todoIndex === -1) {
-        return error(404, 'Todo not found')
-      }
-      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body }
-      return TODOS[todoIndex]
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        desc: t.String(),
-        starred: t.Boolean(),
-        completed: t.Boolean()
-      })
-    }
-  )
 
   .patch(
     '/todos/:id',
-    ({ body, params, error }) => {
-      const todo = TODOS.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      const todo = await db.select().from(todos).where(eq(todos.id, params.id))
       if (!todo) {
         return error(404)
       }
-      Object.assign(todo, body)
-      return TODOS
+      const updatedTodo = await db
+        .update(todos)
+        .set(body)
+        .where(eq(todos.id, params.id))
+        .returning()
+        return updatedTodo[0]
     },
     {
       params: t.Object({
@@ -195,100 +122,19 @@ const app = new Elysia()
         starred: t.Optional(t.Boolean()),
         completed: t.Optional(t.Boolean()),
         desc: t.Optional(t.String())
-      }),
+      })
     }
   )
 
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
-      if (todoIndex === -1) {
-        return error(404, 'Todo not found')
-      }
-      TODOS.splice(todoIndex, 1)
-      return TODOS
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      })
-    }
-  )
-
-  .post(
-    '/todos',
-    ({ body, store }) => {
-      const newID = ++store.id
-      const newTodo = { ...body, id: newID, starred: false, completed: false }
-      TODOS.push(newTodo)
-      return newTodo
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        desc: t.String(),
-        starred: t.Optional(t.Boolean()),
-        completed: t.Optional(t.Boolean()),
-      })
-    }
-  )
-
-  .put(
-    '/todos/:id',
-    ({ params, body, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
-      if (todoIndex === -1) {
-        return error(404, 'Todo not found')
-      }
-      TODOS[todoIndex] = { ...TODOS[todoIndex], ...body }
-      return TODOS[todoIndex]
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        desc: t.String(),
-        starred: t.Boolean(),
-        completed: t.Boolean()
-      })
-    }
-  )
-
-  .patch(
-    '/todos/:id',
-    ({ body, params, error }) => {
-      const todo = TODOS.find((todo) => todo.id === params.id)
+    async ({ params, error, set }) => {
+      const todo = await db.select().from(todos).where(eq(todos.id, params.id))
       if (!todo) {
-        return error(404)
-      }
-      Object.assign(todo, body)
-      return TODOS
-    },
-    {
-      params: t.Object({
-        id: t.Numeric()
-      }),
-      body: t.Object({
-        starred: t.Optional(t.Boolean()),
-        completed: t.Optional(t.Boolean()),
-        desc: t.Optional(t.String())
-      }),
-    }
-  )
-
-  .delete(
-    '/todos/:id',
-    ({ params, error }) => {
-      const todoIndex = TODOS.findIndex(todo => todo.id === params.id)
-      if (todoIndex === -1) {
         return error(404, 'Todo not found')
       }
-      TODOS.splice(todoIndex, 1)
-      return TODOS
+      await db.delete(todos).where(eq(todos.id, params.id))
+      set.status = 'No Content'
     },
     {
       params: t.Object({
