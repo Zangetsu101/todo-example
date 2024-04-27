@@ -7,8 +7,15 @@ import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
+// const sleep = async (ms = 1000) => {
+//   await new Promise((resolve) => setTimeout(resolve, ms))
+// }
+
 const app = new Elysia()
   .use(cors())
+  // .onBeforeHandle(async () => {
+  //   await sleep(1000)
+  // })
   .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
