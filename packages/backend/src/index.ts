@@ -7,40 +7,13 @@ import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
-const todoList = [
-  {
-    id: 1,
-    starred: false,
-    completed: false,
-    desc: 'Wake up at 5am'
-  },
-  {
-    id: 2,
-    starred: false,
-    completed: false,
-    desc: 'Brush your teeth'
-  },
-  {
-    id: 3,
-    starred: false,
-    completed: false,
-    desc: "I don't know what to do!"
-  },
-  {
-    id: 4,
-    starred: true,
-    completed: true,
-    desc: "Yeah, I don't know yet!"
-  }
-]
-
 const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
     ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+      const todo = db.select().from(todos).where(eq(todos.id, params.id))
 
       if (!todo) {
         return error(404, 'Todo not found.')
