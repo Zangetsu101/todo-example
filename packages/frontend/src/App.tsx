@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
+import { compileFunction } from 'vm'
 
 const client = treaty<App>('localhost:3000')
 
@@ -79,34 +80,155 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    let toDelete = todos.filter((todo) => todo.id === id)[0]
+    setTodos(prev => prev.filter((todo) => todo.id !== id))
 
-  const toggleStar = (id: number) =>
+    client.todos({id})
+          .delete()
+          .then((res) => {
+            if(res.error) {
+              setTodos(prev => [...prev, toDelete])
+            }
+
+            if(res.data) {
+              // do nothing?
+            }
+          })
+          .catch((error) => {
+            // Handle errors, including timeouts
+            console.error('Error sending request:', error);
+            // Revert optimistic update
+            setTodos(prev =>  [...prev, toDelete]);
+          })
+  }
+    
+
+
+  const toggleStar = (id: number) =>{
+    let toggleTodo = todos.find((todo) => todo.id === id)
+    if(!toggleTodo) {
+      return
+    }
+    
+    let initialState = toggleTodo?.starred
+
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
 
-  const toggleChecked = (id: number) =>
+    client.todos({id})
+          .patch({
+            starred: !initialState
+          })
+          .then((res) => {
+            if(res.error) {
+              setTodos(
+                todos.map((todo) =>
+                  todo.id === id ? { ...todo, starred: !todo.starred } : todo
+                )
+              )
+            }
+          })
+          .catch((error) => {
+            // Handle errors, including timeouts
+            console.error('Error sending request:', error);
+            // Revert optimistic update (remove temporary todo)
+            setTodos(todos.map((todo) =>
+              todo.id === id ? { ...todo, starred: !todo.starred } : todo
+            ));
+          })
+  }
+
+  const toggleChecked = (id: number) =>{
+    let toggleTodo = todos.find((todo) => todo.id === id)
+    if(!toggleTodo) {
+      return
+    }
+    
+    let initialState = toggleTodo?.completed
+
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
 
+    client.todos({id})
+          .patch({
+            completed: !initialState
+          })
+          .then((res) => {
+            if(res.error) {
+              setTodos(
+                todos.map((todo) =>
+                  todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                )
+              )
+            }
+          })
+          .catch((error) => {
+            // Handle errors, including timeouts
+            console.error('Error sending request:', error);
+            // Revert optimistic update (remove temporary todo)
+            setTodos(todos.map((todo) =>
+              todo.id === id ? { ...todo, starred: !todo.starred } : todo
+            ));
+          })
+  }
+
   const addTodo = () => {
-    setTodos([
-      ...todos,
+
+    let toAdd = {
+      desc: inputRef.current!.value,
+      starred: false,
+      completed: false,
+    }
+
+    let randId = Math.random()
+    setTodos(prev => [
+      ...prev,
       {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
+        id: randId,
+        ...toAdd
       }
     ])
-    inputRef.current!.value = ''
+
+    client.todos
+          .post(toAdd)
+          .then((res) => {
+            if(res.error || !res.data) {
+              // getting rid of the one i optimistically (prematurely) added
+              setTodos(prev => prev.filter((todo) => todo.id != randId))
+            }
+            
+            if(res.data) {
+              const newId = res.data.id
+              setTodos(prev => prev.map(todo => 
+                        todo.id === randId ? { ...todo, id: newId} : todo
+              ))
+              inputRef.current!.value = ''
+            }
+          })
+          .catch((error) => {
+            // Handle errors, including timeouts
+            console.error('Error sending request:', error);
+            // Revert optimistic update (remove temporary todo)
+            setTodos(prev => prev.filter((todo) => todo.id != randId));
+          })
+    
+    // setTodos([
+    //   ...todos,
+    //   {
+    //     id: todos.length,
+    //     desc: inputRef.current!.value,
+    //     starred: false,
+    //     completed: false
+    //   }
+    // ])
+    // inputRef.current!.value = ''
   }
 
   return (
