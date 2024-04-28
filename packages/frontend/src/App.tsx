@@ -9,30 +9,19 @@ import { Checkbox } from './components/ui/checkbox'
 import { Label } from './components/ui/label'
 import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Input } from './components/ui/input'
+import type { App } from 'backend/src/index'
+import { treaty } from '@elysiajs/eden'
 
-const TODOS = [
-  {
-    id: 'wake-up',
-    starred: false,
-    completed: false,
-    desc: 'Wake up at 5am'
-  },
-  {
-    id: 'brush-teeth',
-    starred: false,
-    completed: false,
-    desc: 'Brush your teeth'
-  }
-]
+const client = treaty<App>('localhost:3000')
 
 function Delete({
   id,
   onDelete
 }: {
-  id: string
-  onDelete: (id: string) => void
+  id: number
+  onDelete: (id: number) => void
 }) {
   return (
     <Button
@@ -51,9 +40,9 @@ function Star({
   starred,
   toggleStar
 }: {
-  id: string
+  id: number
   starred: boolean
-  toggleStar: (id: string) => void
+  toggleStar: (id: number) => void
 }) {
   return (
     <Button
@@ -71,38 +60,73 @@ function Star({
   )
 }
 
+type Todo = NonNullable<
+  Awaited<ReturnType<typeof client.todos.get>>['data']
+>[number]
+
 function App() {
-  const [todos, setTodos] = useState(TODOS)
+  const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
 
-  const handleDelete = (id: string) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  useEffect(() => {
+    fetchTodos()
+  }, [])
 
-  const toggleStar = (id: string) =>
+  const fetchTodos = () => {
+    client.todos
+      .get()
+      .then((res) => {
+        setTodos(res.data || [])
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
+
+  const handleDelete = (id: number) => {
+    client
+      .todos({ id })
+      .delete()
+      .then(() => {
+        fetchTodos()
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
+
+  const toggleStar = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+    client.todos({ id }).patch({ starred: !todo?.starred })
+  }
 
-  const toggleChecked = (id: string) =>
+  const toggleChecked = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+    client.todos({ id }).patch({ completed: !todo?.completed })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: `todo-${todos.length}`,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
-    inputRef.current!.value = ''
+    const inputDesc = inputRef.current!.value
+    client.todos
+      .post({ desc: inputDesc })
+      .then(() => {
+        fetchTodos()
+        inputRef.current!.value = ' '
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+    //   inputRef.current!.value = ''
   }
 
   return (
@@ -115,16 +139,16 @@ function App() {
             ...todos.filter(({ starred }) => starred),
             ...todos.filter(({ starred }) => !starred)
           ].map((todo) => (
-            <TableRow>
+            <TableRow key={todo.id}>
               <TableCell>
                 <Checkbox
-                  id={todo.id}
+                  id={todo.id.toString()}
                   checked={todo.completed}
                   onCheckedChange={() => toggleChecked(todo.id)}
                 />
               </TableCell>
               <TableCell>
-                <Label htmlFor={todo.id}>{todo.desc}</Label>
+                <Label htmlFor={todo.id.toString()}>{todo.desc}</Label>
               </TableCell>
               <TableCell className="text-right">
                 <Star

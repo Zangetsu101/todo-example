@@ -1,31 +1,26 @@
+import cors from '@elysiajs/cors'
 import { Elysia, t } from 'elysia'
+import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
+import { db } from './db/db'
+import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
-let noteId = 3
+migrate(db, { migrationsFolder: './drizzle' })
 
-let TODOS = [
-  {
-    id: 1,
-    starred: false,
-    completed: false,
-    desc: 'Wake up at 5am'
-  },
-  {
-    id: 2,
-    starred: false,
-    completed: false,
-    desc: 'Brush your teeth'
-  }
-]
+const todoList = (await db.select().from(todos)) || []
 
 const app = new Elysia()
-  .get('/todos', () => TODOS)
+  .use(cors())
+  .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = TODOS.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
+
       if (!todo) {
-        return error(404)
+        return error(404, 'Todo not found.')
       }
+
       return todo
     },
     {
@@ -35,43 +30,29 @@ const app = new Elysia()
     }
   )
   .post(
-    '/todos/',
-    ({ body }) => {
-      const desc = body
-      const newTodo = {
-        id: noteId++,
-        starred: false,
-        completed: false,
-        desc: desc
-      }
-      TODOS = [...TODOS, newTodo]
+    '/todos',
+    async ({ body, set }) => {
+      await db.insert(todos).values(body)
+      set.status = 'Created'
     },
     {
-      body: t.String()
+      body: t.Object({
+        desc: t.String()
+      })
     }
   )
   .put(
     '/todos/:id',
-    ({ params: { id }, body }) => {
-      let done = true
-      for (let i = 0; i < TODOS.length; ++i) {
-        if (TODOS[i].id === id) {
-          const newTodo = {
-            id: id,
-            ...body
-          }
-          TODOS[i] = newTodo
-          done = false
-          break
-        }
+    async ({ params, body, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
+
+      if (!todo) {
+        return error(204, 'Todo can not be updated.')
       }
-      if (done) {
-        const newTodo = {
-          id: id,
-          ...body
-        }
-        TODOS = [...TODOS, newTodo]
-      }
+
+      Object.assign(todo, body)
+
+      return todo
     },
     {
       params: t.Object({
@@ -86,39 +67,37 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      if (TODOS.some((todo) => todo.id === params.id) === false)
-        return error(404, 'Not Found')
-      for (let i = 0; i < TODOS.length; ++i) {
-        if (TODOS[i].id === params.id) {
-          if (body.starred !== undefined) {
-            TODOS[i].starred = body.starred
-          }
-          if (body.completed !== undefined) {
-            TODOS[i].completed = body.completed
-          }
-          if (body.desc !== undefined) {
-            TODOS[i].desc = body.desc
-          }
-        }
+    async ({ params, body, error }) => {
+      const todo = todoList.find((todo) => todo.id === params.id)
+
+      if (!todo) {
+        return error(204, 'Todo can not be updated.')
       }
+
+      Object.assign(todo, body)
+
+      await db.update(todos).set(todo).where(eq(todos.id, params.id))
     },
     {
-      params: t.Object({ id: t.Numeric() }),
+      params: t.Object({
+        id: t.Numeric()
+      }),
       body: t.Object({
+        desc: t.Optional(t.String()),
         starred: t.Optional(t.Boolean()),
-        completed: t.Optional(t.Boolean()),
-        desc: t.String()
+        completed: t.Optional(t.Boolean())
       })
     }
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      if (TODOS.some((e) => e.id === params.id)) {
-        const newTodo = TODOS.filter((todo) => todo.id != params.id)
-        TODOS = [...newTodo]
-      } else return error(404, 'Not Found')
+    async ({ params, error }) => {
+      const todo = todoList.find(({ id }) => id === params.id)
+      if (!todo) {
+        return error(204, 'Todo can not be deleted.')
+      }
+
+      await db.delete(todos).where(eq(todos.id, params.id)).returning()
     },
     {
       params: t.Object({
@@ -131,6 +110,9 @@ const app = new Elysia()
 console.log(
   `🦊 Elysia is running at ${app.server?.hostname}:${app.server?.port}`
 )
+
+export type App = typeof app
+
 /*
  * GET /todos
  * GET /todos/123421
