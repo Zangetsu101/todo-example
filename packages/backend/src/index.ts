@@ -3,6 +3,7 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
@@ -38,14 +39,15 @@ const app = new Elysia()
   .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({params, set, body, error}) => {
+      const todo = await db.select().from(todos).where(eq(todos.id, params.id))
 
-      if (!todo) {
-        return error(404, 'Todo not found.')
+      if(!todo[0]) {
+        return error(404, 'Todo not found');
       }
 
-      return todo
+      set.status = 'OK'
+      return todo[0]
     },
     {
       params: t.Object({
@@ -56,27 +58,41 @@ const app = new Elysia()
   .post(
     '/todos',
     async ({ body, set }) => {
-      await db.insert(todos).values(body)
+      let newTodo = await db.insert(todos)
+                            .values(body)
+                            .returning()
+      console.log(newTodo)
       set.status = 'Created'
+      return {
+        "id": newTodo[0].id
+      };
     },
     {
       body: t.Object({
-        desc: t.String()
+        desc: t.String(),
+        starred: t.Boolean(),
+        completed: t.Boolean()
       })
     }
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({params, set, body, error}) => {
+      const todo = await db.select().from(todos).where(eq(todos.id, params.id))
 
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+      if(!todo[0]) {
+        return error(404, 'Todo not found for update');
       }
 
-      Object.assign(todo, body)
+      const updatedTodo = await db.update(todos)
+                                  .set(body)
+                                  .where(eq(todos.id, params.id))
+                                  .returning()
+      if(!updatedTodo[0]) {
+        return error(500, 'Todo could not be updated')
+      }
 
-      return todo
+      set.status = 'OK'
     },
     {
       params: t.Object({
@@ -91,16 +107,22 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({params, set, body, error}) => {
+      const todo = await db.select().from(todos).where(eq(todos.id, params.id))
 
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+      if(!todo[0]) {
+        return error(404, 'Todo not found for update');
       }
 
-      Object.assign(todo, body)
+      const updatedTodo = await db.update(todos)
+                                  .set(body)
+                                  .where(eq(todos.id, params.id))
+                                  .returning()
+      if(!updatedTodo[0]) {
+        return error(500, 'Todo could not be updated')
+      }
 
-      return todo
+      set.status = 'OK'
     },
     {
       params: t.Object({
@@ -115,16 +137,22 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, set, error }) => {
+      try {
+        const deletedTodo = await db.delete(todos)
+                                    .where(eq(todos.id, params.id))
+                                    .returning();
 
-      if (!todo) {
-        return error(204, 'Todo can not be deleted.')
+        if (!deletedTodo) {
+          return error(404, 'Todo not found for deletion.');
+        }
+        
+        set.status = 'No Content'
+        return 
+      } catch (err) {
+        console.error('Error deleting todo:', err);
+        return error(500, "Interval server error: " + err);
       }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
     },
     {
       params: t.Object({
