@@ -33,6 +33,10 @@ const todoList = [
     desc: "Yeah, I don't know yet!"
   }
 ]
+const corsOptions = {
+  origin: 'http://localhost:5173',
+  methods: ['GET', 'POST']
+}
 
 const app = new Elysia()
   .use(cors())
@@ -63,7 +67,7 @@ const app = new Elysia()
     '/todos',
     async ({ body, set, error }) => {
       try {
-        const newTodo = await db.insert(todos).values(body).returning()
+        const [newTodo] = await db.insert(todos).values(body).returning()
         set.status = 'Created'
         return newTodo
       } catch (err) {
