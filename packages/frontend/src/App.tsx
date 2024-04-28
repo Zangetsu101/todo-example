@@ -79,34 +79,94 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    const todo = todos.find((delTodo) => delTodo.id === id)
 
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
+    setTodos((prevTodos) => prevTodos.filter((t) => t.id !== id))
+
+    client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          if (todo) {
+            setTodos((prevTodos) => [...prevTodos, { ...todo }])
+          }
+        }
+      })
+  }
+
+  const toggleStar = (id: number) => {
+    const starredValue = todos.find((todo) => todo.id === id)?.starred
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === id ? { ...todo, starred: !starredValue } : todo
       )
     )
 
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+    if (starredValue !== undefined) {
+      client
+        .todos({ id })
+        .patch({ starred: !starredValue })
+        .then((res) => {
+          if (res.error) {
+            if (starredValue) {
+              setTodos((prevTodos) =>
+                prevTodos.map((todo) =>
+                  todo.id === id ? { ...todo, starred: starredValue } : todo
+                )
+              )
+            }
+          }
+        })
+    }
+  }
+
+  const toggleChecked = (id: number) => {
+    const checkedValue = todos.find((todo) => todo.id === id)?.completed
+    setTodos((prevTodos) =>
+      prevTodos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !checkedValue } : todo
       )
     )
+
+    if (checkedValue !== undefined) {
+      client
+        .todos({ id })
+        .patch({ completed: !checkedValue })
+        .then((res) => {
+          if (res.error) {
+            if (checkedValue) {
+              setTodos((prevTodos) =>
+                prevTodos.map((todo) =>
+                  todo.id === id ? { ...todo, completed: checkedValue } : todo
+                )
+              )
+            }
+          }
+        })
+    }
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
-    inputRef.current!.value = ''
+    const newTodo = {
+      desc: inputRef.current!.value,
+      starred: false,
+      completed: false
+      // id: Math.random()
+    }
+    setTodos((prevTodos) => [...prevTodos, { ...newTodo, id: Math.random() }])
+    if (newTodo.desc !== undefined) {
+      client.todos.new.post(newTodo).then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos((prevTodos) => [...prevTodos, res.data])
+        }
+      })
+      inputRef.current!.value = ''
+    }
   }
 
   return (
