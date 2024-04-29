@@ -4,6 +4,7 @@ import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
 import { eq } from 'drizzle-orm'
+
 migrate(db, { migrationsFolder: './drizzle' })
 const app = new Elysia()
   .use(cors())
@@ -30,7 +31,7 @@ const app = new Elysia()
     async ({ body, set }) => {
       const createdTodo = await db.insert(todos).values(body).returning()
       set.status = 'Created'
-      return createdTodo
+      return createdTodo[0]
     },
     {
       body: t.Object({
@@ -49,7 +50,7 @@ const app = new Elysia()
       if (updatedTodo.length === 0) {
         return error(404)
       }
-      return updatedTodo
+      return updatedTodo[0]
     },
     {
       params: t.Object({
@@ -73,7 +74,7 @@ const app = new Elysia()
       if (updatedTodo.length === 0) {
         return error(404)
       }
-      return updatedTodo
+      return updatedTodo[0]
     },
     {
       params: t.Object({
