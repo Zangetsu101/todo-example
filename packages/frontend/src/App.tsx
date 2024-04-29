@@ -11,7 +11,7 @@ import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Input } from './components/ui/input'
-import type { App } from 'backend/src/index'
+import type { App } from 'backend/src'
 import { treaty } from '@elysiajs/eden'
 
 const client = treaty<App>('localhost:3000')
@@ -71,7 +71,7 @@ function App() {
   useEffect(() => {
     client.todos.get().then((res) => {
       if (res.error) {
-        res.error
+        return res.error
       }
       if (res.data) {
         setTodos(res.data)
@@ -79,34 +79,61 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
-
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
-
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
-
+  const handleDelete = (id: number) => {
+    client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          return res.error
+        } else {
+          setTodos(todos.filter((todo) => todo.id !== id))
+        }
+      })
+  }
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
+    client.todos
+      .post({
+        desc: inputRef.current!.value
+      })
+      .then((res) => {
+        if (res.error) {
+          return res.error
+        }
+        if (res.data) {
+          setTodos([...todos, res.data])
+        }
+      })
     inputRef.current!.value = ''
+  }
+  const toggleStar = (id: number) => {
+    const currentStarred = todos.find((todo) => todo.id === id)?.starred
+    client
+      .todos({ id })
+      .patch({ starred: !currentStarred })
+      .then((res) => {
+        if (res.error) {
+          return res.error
+        }
+        if (res.data) {
+          setTodos(todos.map((todo) => (todo.id === id ? res.data : todo)))
+        }
+      })
+  }
+
+  const toggleChecked = (id: number) => {
+    const currentChecked = todos.find((todo) => todo.id === id)?.completed
+    client
+      .todos({ id })
+      .patch({ completed: !currentChecked })
+      .then((res) => {
+        if (res.error) {
+          return res.error
+        }
+        if (res.data) {
+          setTodos(todos.map((todo) => (todo.id === id ? res.data : todo)))
+        }
+      })
   }
 
   return (
