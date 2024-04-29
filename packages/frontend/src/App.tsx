@@ -14,7 +14,7 @@ import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
 
-const client = treaty<App>('localhost:3000')
+const client = treaty<App>('localhost:3000');
 
 function Delete({
   id,
@@ -60,9 +60,7 @@ function Star({
   )
 }
 
-type Todo = NonNullable<
-  Awaited<ReturnType<typeof client.todos.get>>['data']
->[number]
+type Todo = NonNullable<Awaited<ReturnType<typeof client.todos.get>>['data']>[number]
 
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
@@ -79,33 +77,53 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    client.todos({ id }).delete().then((res) => {
+      if (res.error) {
+        res.error;
+      }
 
-  const toggleStar = (id: number) =>
+      if (res.data) {
+        setTodos( todos.filter((todo) => todo.id !== id))
+      }
+    });
+  }
+
+  const toggleStar = (id: number) => {
+    const todo = todos.find(t => t.id == id);
+
+    if (todo) {
+      client.todos({ id }).patch({ starred: !todo.starred });
+    }
+
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+  }
 
-  const toggleChecked = (id: number) =>
+  const toggleChecked = (id: number) => {
+    const todo = todos.find(t => t.id == id);
+
+    client.todos({id}).patch({completed: !todo?.completed})
+    
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
+    client.todos.post({
+      "desc": inputRef.current!.value
+    }).then(res => {
+      if (res.data) {
+        setTodos([...todos, res.data[0]])
       }
-    ])
+    })
+
     inputRef.current!.value = ''
   }
 
@@ -115,16 +133,15 @@ function App() {
       <Table>
         <TableCaption>A list of your todos.</TableCaption>
         <TableBody>
-          {[
-            ...todos.filter(({ starred }) => starred),
-            ...todos.filter(({ starred }) => !starred)
-          ].map((todo) => (
+          {
+          todos.map((todo) => (
             <TableRow key={todo.id}>
               <TableCell>
                 <Checkbox
                   id={todo.id.toString()}
                   checked={todo.completed}
-                  onCheckedChange={() => toggleChecked(todo.id)}
+                  onCheckedChange={() => toggleChecked(todo.id)
+                  }
                 />
               </TableCell>
               <TableCell>
