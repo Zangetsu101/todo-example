@@ -1,5 +1,5 @@
 import cors from '@elysiajs/cors'
-import { Elysia, t } from 'elysia'
+import Elysia, { t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
@@ -13,11 +13,14 @@ const app = new Elysia()
   .get(
     '/todos/:id',
     async ({params, set, error}) => {
-        const todo = await db.select().from(todos).where(eq(todos.id, params.id));
-        if (!todo || todo.length === 0){
-            set.status = 'Not Found';
+        const [todo] = await db
+            .select()
+            .from(todos)
+            .where(eq(todos.id, params.id));
+        if (!todo ) {
+            return error(404, 'Todo could not be found.');
         }
-        return todo[0]
+        return todo;
     },
     {
       params: t.Object({
@@ -28,13 +31,15 @@ const app = new Elysia()
   .post(
     '/todos',
     async ({ body, set, error }) => {
-      const newTodo = await db.insert(todos).values(body).returning();
+      const [newTodo] = await db
+          .insert(todos)
+          .values(body)
+          .returning();
       if(!newTodo){
-          return error(500, 'Todo can not be created.')
+          return error(500, 'Todo could not be created.')
       }
-      if(newTodo.length != 0)
-          set.status = 'Created';
-      return newTodo[0];
+      set.status = 'Created';
+      return newTodo;
     },
     {
       body: t.Object({
@@ -45,14 +50,15 @@ const app = new Elysia()
   .put(
     '/todos/:id',
     async ({params, body, error}) => {
-        const updatedTodo = await db.update(todos)
+        const [updatedTodo] = await db
+            .update(todos)
             .set(body)
             .where(eq(todos.id, params.id))
             .returning();
         if(!updatedTodo){
-            return error(500, 'Todo can not be updated.')
+            return error(500, 'Todo could not be updated.')
         }
-        return updatedTodo[0];
+        return updatedTodo;
     },
     {
       params: t.Object({
@@ -68,14 +74,15 @@ const app = new Elysia()
   .patch(
     '/todos/:id',
     async ({params, body, error}) => {
-        const updatedTodo = await db.update(todos)
+        const [updatedTodo] = await db
+            .update(todos)
             .set(body)
             .where(eq(todos.id, params.id))
             .returning();
         if (!updatedTodo) {
-            return error(500, 'Todo can not be updated.')
+            return error(500, 'Todo could not be updated.')
         }
-        return updatedTodo[0];
+        return updatedTodo;
     },
     {
       params: t.Object({
@@ -91,15 +98,15 @@ const app = new Elysia()
   .delete(
     '/todos/:id',
     async ({params, set, error}) => {
-        const deletedTodo = await db.delete(todos)
+        const [deletedTodo] = await db
+            .delete(todos)
             .where(eq(todos.id, params.id))
             .returning();
         if (!deletedTodo) {
-            return error(500, 'Todo can not be deleted.')
+            return error(500, 'Todo could not be deleted.')
         }
-        if(deletedTodo[0].id === params.id )
-            set.status = 'No Content';
-        return deletedTodo[0];
+        set.status = 'No Content';
+        return deletedTodo;
     },
     {
       params: t.Object({
