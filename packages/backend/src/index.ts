@@ -38,8 +38,10 @@ const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
   .get('/todos/:id',
-    ({ params, error }) => {
-      const todo = db.select().from(todos).where(eq(todos.id, params.id));
+    async ({ params, error }) => {
+      const todo = await db.select()
+        .from(todos)
+        .where(eq(todos.id, params.id));
 
       if (!todo) {
         return error(404, 'Todo not found.')
@@ -55,7 +57,9 @@ const app = new Elysia()
   )
   .post('/todos',
     async ({ body, set }) => {
-      const newTodo = await db.insert(todos).values(body).returning();
+      const newTodo = await db.insert(todos)
+        .values(body)
+        .returning();
 
       set.status = 'Created';
 
@@ -95,10 +99,10 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
+    async ({ params, body, error }) => {
       // const todo = todoList.find((todo) => todo.id === params.id);
 
-      const todo = db.update(todos)
+      const todo = await db.update(todos)
         .set({ desc: body.desc, completed: body.completed, starred: body.starred })
         .where(eq(todos.id, params.id))
         .returning();
@@ -123,10 +127,12 @@ const app = new Elysia()
     }
   )
   .delete('/todos/:id',
-    ({ params, error }) => {
+    async ({ params, error }) => {
       // const todo = todoList.find((todo) => todo.id === params.id);
 
-      const todo = db.delete(todos).where(eq(todos.id, params.id)).returning();
+      const todo = await db.delete(todos)
+        .where(eq(todos.id, params.id))
+        .returning();
 
       if (!todo) {
         return error(204, 'Todo can not be deleted.');

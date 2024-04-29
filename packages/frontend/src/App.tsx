@@ -90,13 +90,11 @@ function App() {
   }
 
   const toggleStar = (id: number) => {
-    const toggledTodo = client.todos({ id })
-      .get()
-      .then(res => {
-        if (res.data) {
-          client.todos({ id }).patch({ starred: !res.data[0].starred });
-        }
-      })
+    const todo = todos.find(t => t.id == id);
+
+    if (todo) {
+      client.todos({ id }).patch({ starred: !todo.starred });
+    }
 
     setTodos(
       todos.map((todo) =>
@@ -106,15 +104,10 @@ function App() {
   }
 
   const toggleChecked = (id: number) => {
-    // const tdo = client.todos({ id }).get().then(res => {
-    //   if (res.data) {
-    //     console.log(client.todos);
-    //     // client.todos({ id }).patch({ completed:  !res.data[0].completed});
-    //     //client.todos({ id }).filter(item => item.id == id).get()
-    //   }
-    // });
-    const todo = todos.find(t => t.id == id)
+    const todo = todos.find(t => t.id == id);
+
     client.todos({id}).patch({completed: !todo?.completed})
+    
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
