@@ -78,7 +78,7 @@ const app = new Elysia()
         .where(eq(todos.id, params.id))
 
       if (!todo) {
-        return error(204, 'Todo can not be updated.')
+        return error(404, 'Todo can not be updated.')
       }
 
       const updatedTodo = await db
