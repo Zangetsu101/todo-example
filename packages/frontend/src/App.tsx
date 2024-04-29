@@ -69,44 +69,64 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    client.todos.get().then((res) => {
-      if (res.error) {
-        res.error
-      }
-      if (res.data) {
-        setTodos(res.data)
-      }
-    })
+   fetchTodos();
   }, [])
-
+  const fetchTodos = () => {
+    client.todos
+      .get()
+      .then((res) => {
+        setTodos(res.data || [])
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
   const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+   {
+    client
+    .todos({ id })
+    .delete()
+    .then(() => {
+      fetchTodos()
+    })
+    .catch((error) => {
+      console.log(error)
+    })
+   }
 
   const toggleStar = (id: number) =>
+  {
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+    client.todos({ id }).patch({ starred: !todo?.starred })
+  }
 
   const toggleChecked = (id: number) =>
+  {
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+    client.todos({ id }).patch({ completed: !todo?.completed })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
-    inputRef.current!.value = ''
+    const inputDesc = inputRef.current!.value
+    client.todos
+      .post({ desc: inputDesc })
+      .then(() => {
+        fetchTodos()
+        inputRef.current!.value = ' '
+      })
+      .catch((error) => {
+        console.log(error)
+      })
   }
 
   return (
