@@ -79,34 +79,68 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
-
-  const toggleStar = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, starred: !todo.starred } : todo
-      )
-    )
-
-  const toggleChecked = (id: number) =>
-    setTodos(
-      todos.map((todo) =>
-        todo.id === id ? { ...todo, completed: !todo.completed } : todo
-      )
-    )
-
-  const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
+  const addTodo = async () => {
+    try {
+      const res = await client.todos.post({
         desc: inputRef.current!.value,
         starred: false,
         completed: false
+      })
+
+      if (res.error) {
+        res.error
       }
-    ])
-    inputRef.current!.value = ''
+
+      if (res.data) {
+        setTodos([...todos, res.data])
+      }
+
+      inputRef.current!.value = ''
+    } catch (error) {
+      console.error('An error occurred while adding todo:', error)
+    }
+  }
+  const handleDelete = async (id: number) => {
+    try {
+      const res = await client.todos({ id }).delete()
+      if (res.error) {
+        res.error
+      } else {
+        setTodos(todos.filter((todo) => todo.id !== id))
+      }
+    } catch (error) {
+      console.error('An error occurred while deleting:', error)
+    }
+  }
+
+  const toggleStar = (id: number) => {
+    const currentStarred = todos.find((todo) => todo.id === id)?.starred
+    client
+      .todos({ id })
+      .patch({ starred: !currentStarred })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(todos.map((todo) => (todo.id === id ? res.data : todo)))
+        }
+      })
+  }
+
+  const toggleChecked = (id: number) => {
+    const currentChecked = todos.find((todo) => todo.id === id)?.completed
+    client
+      .todos({ id })
+      .patch({ completed: !currentChecked })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(todos.map((todo) => (todo.id === id ? res.data : todo)))
+        }
+      })
   }
 
   return (

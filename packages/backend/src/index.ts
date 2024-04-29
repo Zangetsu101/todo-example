@@ -3,49 +3,31 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
-
-const todoList = [
-  {
-    id: 1,
-    starred: false,
-    completed: false,
-    desc: 'Wake up at 5am'
-  },
-  {
-    id: 2,
-    starred: false,
-    completed: false,
-    desc: 'Brush your teeth'
-  },
-  {
-    id: 3,
-    starred: false,
-    completed: false,
-    desc: "I don't know what to do!"
-  },
-  {
-    id: 4,
-    starred: true,
-    completed: true,
-    desc: "Yeah, I don't know yet!"
-  }
-]
 
 const app = new Elysia()
   .use(cors())
   .get('/todos', () => db.select().from(todos))
   .get(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      try {
+        const [todo] = await db
+          .select()
+          .from(todos)
+          .where(eq(todos.id, params.id))
 
-      if (!todo) {
-        return error(404, 'Todo not found.')
+        if (!todo) {
+          return error(404, 'Todo not found.')
+        }
+
+        return todo
+      } catch (err) {
+        console.error(err)
+        return error(500, 'Internal Server Error')
       }
-
-      return todo
     },
     {
       params: t.Object({
@@ -55,28 +37,43 @@ const app = new Elysia()
   )
   .post(
     '/todos',
-    async ({ body, set }) => {
-      await db.insert(todos).values(body)
-      set.status = 'Created'
+    async ({ body, set, error }) => {
+      try {
+        const [newTodo] = await db.insert(todos).values(body).returning()
+        set.status = 'Created'
+        return newTodo
+      } catch (err) {
+        console.error(err)
+        return error(500, 'Internal Server Error')
+      }
     },
     {
       body: t.Object({
-        desc: t.String()
+        desc: t.String(),
+        starred: t.Boolean(),
+        completed: t.Boolean()
       })
     }
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      try {
+        const [updatedTodo] = await db
+          .update(todos)
+          .set(body)
+          .where(eq(todos.id, params.id))
+          .returning()
 
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+        if (!updatedTodo) {
+          return error(204, 'Todo can not be updated.')
+        }
+
+        return updatedTodo
+      } catch (err) {
+        console.error(err)
+        return error(500, 'Internal Server Error')
       }
-
-      Object.assign(todo, body)
-
-      return todo
     },
     {
       params: t.Object({
@@ -91,16 +88,23 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, body, error }) => {
+      try {
+        const [updatedTodo] = await db
+          .update(todos)
+          .set(body)
+          .where(eq(todos.id, params.id))
+          .returning()
 
-      if (!todo) {
-        return error(204, 'Todo can not be updated.')
+        if (!updatedTodo) {
+          return error(204, 'Todo can not be updated.')
+        }
+
+        return updatedTodo
+      } catch (err) {
+        console.error(err)
+        return error(500, 'Internal Server Error')
       }
-
-      Object.assign(todo, body)
-
-      return todo
     },
     {
       params: t.Object({
@@ -115,16 +119,22 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      try {
+        const [deletedTodo] = await db
+          .delete(todos)
+          .where(eq(todos.id, params.id))
+          .returning()
 
-      if (!todo) {
-        return error(204, 'Todo can not be deleted.')
+        if (!deletedTodo) {
+          return error(204, 'Todo can not be deleted.')
+        }
+
+        return deletedTodo
+      } catch (err) {
+        console.error(err)
+        return error(500, 'Internal Server Error')
       }
-
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
     },
     {
       params: t.Object({
