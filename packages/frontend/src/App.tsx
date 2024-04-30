@@ -11,7 +11,7 @@ import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { Input } from './components/ui/input'
-import type { App } from 'backend/src/index'
+import type { App } from 'backend/src'
 import { treaty } from '@elysiajs/eden'
 
 const client = treaty<App>('localhost:3000')
@@ -86,28 +86,30 @@ function App() {
         .then((res) => {
           if (res.error) {
             res.error
-          } else {
+          }
+          else {
             setTodos(todos.filter((todo) => todo.id !== id))
           }
         })
   }
   const toggleStar = (id: number) =>{
-    const todo = todos.find((todo) => todo.id === id)
-    if (!todo) {
+    const prevTodo = todos.find((todo) => todo.id === id)
+    if (!prevTodo) {
       return
     }
     client
         .todos({ id })
         .patch(
-            { starred: !todo.starred}
+            { starred: !prevTodo.starred}
         )
         .then((res) => {
           if (res.error) {
             res.error
-          } else {
+          }
+          if (res.data){
             setTodos(
                 todos.map((todo) =>
-                    todo.id === id ? { ...todo, starred: !todo.starred } : todo
+                    todo.id === id ? { ...todo, starred: res.data.starred } : todo
                 )
             )
           }
@@ -116,22 +118,23 @@ function App() {
 
 
   const toggleChecked = (id: number) =>{
-    const todo = todos.find((todo) => todo.id === id)
-    if (!todo) {
+    const prevTodo = todos.find((todo) => todo.id === id)
+    if (!prevTodo) {
       return
     }
     client
         .todos({ id })
         .patch(
-            { completed: !todo.completed}
+            { completed: !prevTodo.completed}
         )
         .then((res) => {
           if (res.error) {
             res.error
-          } else {
+          }
+          if (res.data){
             setTodos(
                 todos.map((todo) =>
-                    todo.id === id ? { ...todo, completed: !todo.completed } : todo
+                    todo.id === id ? { ...todo, completed: res.data.completed } : todo
                 )
             )
           }

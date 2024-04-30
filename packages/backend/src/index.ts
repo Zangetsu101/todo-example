@@ -95,8 +95,8 @@ const app = new Elysia()
       })
     }
   )
-  .delete(
-    '/todos/:id',
+    .delete(
+        '/todos/:id',
     async ({params, set, error}) => {
         const [deletedTodo] = await db
             .delete(todos)
@@ -106,7 +106,6 @@ const app = new Elysia()
             return error(500, 'Todo could not be deleted.')
         }
         set.status = 'No Content';
-        return deletedTodo;
     },
     {
       params: t.Object({
