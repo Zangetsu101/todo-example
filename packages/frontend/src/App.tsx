@@ -69,10 +69,6 @@ function App() {
   const inputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetchTodos()
-  }, [])
-
-  const fetchTodos = () => {
     client.todos
       .get()
       .then((res) => {
@@ -81,14 +77,14 @@ function App() {
       .catch((error) => {
         console.log(error)
       })
-  }
+  }, [])
 
   const handleDelete = (id: number) => {
     client
       .todos({ id })
       .delete()
       .then(() => {
-        fetchTodos()
+        setTodos(todos.filter((todos) => todos.id !== id))
       })
       .catch((error) => {
         console.log(error)
@@ -119,8 +115,8 @@ function App() {
     const inputDesc = inputRef.current!.value
     client.todos
       .post({ desc: inputDesc })
-      .then(() => {
-        fetchTodos()
+      .then((res) => {
+        if (res.data) setTodos([...todos, res.data])
         inputRef.current!.value = ' '
       })
       .catch((error) => {
