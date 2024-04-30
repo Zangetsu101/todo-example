@@ -95,19 +95,25 @@ function App() {
       })
   }
 
-  const toggleStar = (id: number) =>
+  const toggleStar = (id: number) => {
+    const todo = todos.find((t) => t.id === id)
+    client.todos({ id }).patch({ starred: !todo?.starred })
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+  }
 
-  const toggleChecked = (id: number) =>
+  const toggleChecked = (id: number) => {
+    const todo = todos.find((t) => t.id === id)
+    client.todos({ id }).patch({ completed: !todo?.completed })
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+  }
 
   const addTodo = () => {
     client.todos
