@@ -3,10 +3,11 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
-const todoList = [
+let todoList = [
   {
     id: 1,
     starred: false,
@@ -39,7 +40,7 @@ const app = new Elysia()
   .get(
     '/todos/:id',
     ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+      const todo = db.select().from(todos).where(eq(todos.id, params.id))
 
       if (!todo) {
         return error(404, 'Todo not found.')
@@ -56,8 +57,9 @@ const app = new Elysia()
   .post(
     '/todos',
     async ({ body, set }) => {
-      await db.insert(todos).values(body)
+      const [todo] = await db.insert(todos).values(body).returning()
       set.status = 'Created'
+      return todo
     },
     {
       body: t.Object({
@@ -67,15 +69,13 @@ const app = new Elysia()
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
+    async ({ params, body, error }) => {
       const todo = todoList.find((todo) => todo.id === params.id)
 
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
-
       Object.assign(todo, body)
-
       return todo
     },
     {
@@ -91,14 +91,12 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+   async ({ params, body, error }) => {
+      const todo = db.update(todos).set({ starred: body.starred, desc: body.desc, completed: body.completed }).where(eq(todos.id, params.id)).returning()
 
       if (!todo) {
         return error(204, 'Todo can not be updated.')
       }
-
-      Object.assign(todo, body)
 
       return todo
     },
@@ -115,16 +113,13 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
-
+    async ({ params, error }) => {
+      const todo = todoList.find(({ id }) => id === params.id)
       if (!todo) {
-        return error(204, 'Todo can not be deleted.')
+        return error(204, 'nothing to delete.. maybe its a glitch .')
       }
 
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
+      await db.delete(todos).where(eq(todos.id, params.id)).returning()
     },
     {
       params: t.Object({
