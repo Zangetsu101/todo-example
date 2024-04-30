@@ -79,33 +79,55 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = async (id: number) => {
+    // setTodos(todos.filter((todo) => todo.id !== id))
+    await client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) res.error
+        if (res.data) {
+          setTodos(todos.filter((todo) => todo.id != id))
+        }
+      })
+  }
 
-  const toggleStar = (id: number) =>
+  const toggleStar = async (id: number) => {
+    const todo = todos.find((todo) => todo.id == id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+    client.todos({ id }).patch({ starred: !todo?.starred })
+  }
 
-  const toggleChecked = (id: number) =>
+  const toggleChecked = (id: number) => {
+    const todo = todos.find((todo) => todo.id == id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+    client.todos({ id }).patch({ completed: !todo?.completed })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
+    client.todos
+      .post({
         desc: inputRef.current!.value,
         starred: false,
         completed: false
-      }
-    ])
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          console.log(res.data)
+          setTodos([...todos, res.data])
+        }
+      })
     inputRef.current!.value = ''
   }
 
