@@ -9,7 +9,7 @@ import { Checkbox } from './components/ui/checkbox'
 import { Label } from './components/ui/label'
 import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useOptimistic } from 'react'
 import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
@@ -64,9 +64,15 @@ type Todo = NonNullable<
   Awaited<ReturnType<typeof client.todos.get>>['data']
 >[number]
 
+type OptimisticTodo = Todo & {
+  pending?: boolean
+}
+
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic<OptimisticTodo[]>(todos)
+
 
   useEffect(() => {
     client.todos.get().then((res) => {
@@ -79,33 +85,102 @@ function App() {
     })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
 
-  const toggleStar = (id: number) =>
-    setTodos(
+  const handleDelete = (id: number) => {
+    setOptimisticTodos(todos.filter((todo) => todo.id !== id))
+    client
+      .todos({ id })
+      .delete()
+      .then((res) => {
+        if (res.error) {
+          res.error
+        } else {
+          setTodos(todos.filter((todo) => todo.id !== id))
+        }
+      })
+  }
+
+  const toggleStar = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
+    setOptimisticTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+    if (!todo) {
+      return
+    }
+    client
+      .todos({ id })
+      .patch({
+        starred: !todo.starred
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(
+            todos.map((todo) =>
+              todo.id === id ? { ...todo, starred: !todo.starred } : todo
+            )
+          )
+        }
+      })
+  }
 
-  const toggleChecked = (id: number) =>
-    setTodos(
+  const toggleChecked = (id: number) => {
+    const todo = todos.find((todo) => todo.id === id)
+    setOptimisticTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+    if (!todo) {
+      return
+    }
+    client
+      .todos({ id })
+      .patch({
+        completed: !todo.completed
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos(
+            todos.map((todo) =>
+              todo.id === id ? { ...todo, completed: !todo.completed } : todo
+            )
+          )
+        }
+      })
+  }
 
   const addTodo = () => {
-    setTodos([
-      ...todos,
-      {
-        id: todos.length,
-        desc: inputRef.current!.value,
-        starred: false,
-        completed: false
-      }
-    ])
+    const newTodoDesc = inputRef.current!.value
+    const optimisticTodo = {
+      id: Math.random(), 
+      desc: newTodoDesc, 
+      completed: false, 
+      starred: false,
+      pending: true,
+    }
+
+    setOptimisticTodos(prev => [...prev, optimisticTodo])
+    client.todos
+      .post({
+        desc: inputRef.current!.value
+      })
+      .then((res) => {
+        if (res.error) {
+          res.error
+        }
+        if (res.data) {
+          setTodos([...todos, ...res.data])
+        }
+      })
     inputRef.current!.value = ''
   }
 
@@ -116,8 +191,8 @@ function App() {
         <TableCaption>A list of your todos.</TableCaption>
         <TableBody>
           {[
-            ...todos.filter(({ starred }) => starred),
-            ...todos.filter(({ starred }) => !starred)
+            ...optimisticTodos.filter(({ starred }) => starred),
+            ...optimisticTodos.filter(({ starred }) => !starred)
           ].map((todo) => (
             <TableRow key={todo.id}>
               <TableCell>
@@ -128,7 +203,7 @@ function App() {
                 />
               </TableCell>
               <TableCell>
-                <Label htmlFor={todo.id.toString()}>{todo.desc}</Label>
+                <Label style={{opacity: todo.pending? .5 : undefined }} htmlFor={todo.id.toString()}>{todo.desc}</Label>
               </TableCell>
               <TableCell className="text-right">
                 <Star
