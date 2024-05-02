@@ -18,10 +18,12 @@ const client = treaty<App>('localhost:3000')
 
 function Delete({
   id,
-  onDelete
+  onDelete,
+  disabled
 }: {
   id: number
   onDelete: (id: number) => void
+  disabled?: boolean
 }) {
   return (
     <Button
@@ -29,6 +31,7 @@ function Delete({
       variant="ghost"
       size="icon"
       className="rounded-3xl"
+      disabled={disabled}
     >
       <Trash2 className="h-4 w-4 text-red-500" />
     </Button>
@@ -67,13 +70,15 @@ type Todo = NonNullable<
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
-  const [optimisticTodos, setOptimisticTodos] = useOptimistic(todos)
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic<Todo[]>(todos)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     client.todos
       .get()
       .then((res) => {
         setTodos(res.data || [])
+        setLoading(false)
       })
       .catch((error) => {
         console.log(error)
@@ -126,6 +131,7 @@ function App() {
 
   const addTodo = () => {
     const inputDesc = inputRef.current!.value
+    setLoading(true)
     setOptimisticTodos([
       ...todos,
       {
@@ -139,6 +145,7 @@ function App() {
       .post({ desc: inputDesc })
       .then((res) => {
         if (res.data) setTodos([...todos, res.data])
+        setLoading(false)
         inputRef.current!.value = ' '
       })
       .catch((error) => {
@@ -174,7 +181,11 @@ function App() {
                   starred={todo.starred}
                   toggleStar={toggleStar}
                 />
-                <Delete id={todo.id} onDelete={handleDelete} />
+                <Delete
+                  id={todo.id}
+                  onDelete={handleDelete}
+                  disabled={loading}
+                />
               </TableCell>
             </TableRow>
           ))}
