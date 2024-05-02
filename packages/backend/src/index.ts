@@ -7,11 +7,20 @@ import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
-const todoList = (await db.select().from(todos)) || []
+let todoList = (await db.select().from(todos)) || []
+
+function delay(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time))
+}
+
+const getTodos = async () => {
+  await delay(500)
+  return db.select().from(todos)
+}
 
 const app = new Elysia()
   .use(cors())
-  .get('/todos', () => db.select().from(todos))
+  .get('/todos', getTodos)
   .get(
     '/todos/:id',
     async ({ params, error }) => {
@@ -34,6 +43,7 @@ const app = new Elysia()
     async ({ body, set }) => {
       const [todo] = await db.insert(todos).values(body).returning()
       set.status = 'Created'
+      todoList = [...todoList, todo]
       return todo
     },
     {
@@ -94,11 +104,14 @@ const app = new Elysia()
     '/todos/:id',
     async ({ params, error }) => {
       const todo = todoList.find(({ id }) => id === params.id)
+      todoList = todoList.filter((todos) => todos !== todo)
+
       if (!todo) {
+        console.log('err')
         return error(204, 'Todo can not be deleted.')
       }
 
-      await db.delete(todos).where(eq(todos.id, params.id)).returning()
+      await db.delete(todos).where(eq(todos.id, params.id))
     },
     {
       params: t.Object({

@@ -9,7 +9,7 @@ import { Checkbox } from './components/ui/checkbox'
 import { Label } from './components/ui/label'
 import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useOptimistic } from 'react'
 import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
@@ -67,6 +67,7 @@ type Todo = NonNullable<
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic(todos)
 
   useEffect(() => {
     client.todos
@@ -80,6 +81,8 @@ function App() {
   }, [])
 
   const handleDelete = (id: number) => {
+    setOptimisticTodos(todos.filter((todo) => todo.id !== id))
+
     client
       .todos({ id })
       .delete()
@@ -92,6 +95,11 @@ function App() {
   }
 
   const toggleStar = (id: number) => {
+    setOptimisticTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, starred: !todo.starred } : todo
+      )
+    )
     const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
@@ -102,6 +110,11 @@ function App() {
   }
 
   const toggleChecked = (id: number) => {
+    setOptimisticTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    )
     const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
@@ -113,6 +126,15 @@ function App() {
 
   const addTodo = () => {
     const inputDesc = inputRef.current!.value
+    setOptimisticTodos([
+      ...todos,
+      {
+        id: Math.random(),
+        desc: inputDesc,
+        starred: false,
+        completed: false
+      }
+    ])
     client.todos
       .post({ desc: inputDesc })
       .then((res) => {
@@ -132,8 +154,8 @@ function App() {
         <TableCaption>A list of your todos.</TableCaption>
         <TableBody>
           {[
-            ...todos.filter(({ starred }) => starred),
-            ...todos.filter(({ starred }) => !starred)
+            ...optimisticTodos.filter(({ starred }) => starred),
+            ...optimisticTodos.filter(({ starred }) => !starred)
           ].map((todo) => (
             <TableRow key={todo.id}>
               <TableCell>
