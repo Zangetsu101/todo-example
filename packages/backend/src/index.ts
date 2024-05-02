@@ -3,42 +3,27 @@ import { Elysia, t } from 'elysia'
 import { migrate } from 'drizzle-orm/bun-sqlite/migrator'
 import { db } from './db/db'
 import { todos } from './db/schema'
+import { eq } from 'drizzle-orm'
 
 migrate(db, { migrationsFolder: './drizzle' })
 
-const todoList = [
-  {
-    id: 1,
-    starred: false,
-    completed: false,
-    desc: 'Wake up at 5am'
-  },
-  {
-    id: 2,
-    starred: false,
-    completed: false,
-    desc: 'Brush your teeth'
-  },
-  {
-    id: 3,
-    starred: false,
-    completed: false,
-    desc: "I don't know what to do!"
-  },
-  {
-    id: 4,
-    starred: true,
-    completed: true,
-    desc: "Yeah, I don't know yet!"
-  }
-]
+let todoList = (await db.select().from(todos)) || []
+
+function delay(time: number) {
+  return new Promise((resolve) => setTimeout(resolve, time))
+}
+
+const getTodos = async () => {
+  await delay(500)
+  return db.select().from(todos)
+}
 
 const app = new Elysia()
   .use(cors())
-  .get('/todos', () => db.select().from(todos))
+  .get('/todos', getTodos)
   .get(
     '/todos/:id',
-    ({ params, error }) => {
+    async ({ params, error }) => {
       const todo = todoList.find((todo) => todo.id === params.id)
 
       if (!todo) {
@@ -56,8 +41,10 @@ const app = new Elysia()
   .post(
     '/todos',
     async ({ body, set }) => {
-      await db.insert(todos).values(body)
+      const [todo] = await db.insert(todos).values(body).returning()
       set.status = 'Created'
+      todoList = [...todoList, todo]
+      return todo
     },
     {
       body: t.Object({
@@ -67,7 +54,7 @@ const app = new Elysia()
   )
   .put(
     '/todos/:id',
-    ({ params, body, error }) => {
+    async ({ params, body, error }) => {
       const todo = todoList.find((todo) => todo.id === params.id)
 
       if (!todo) {
@@ -91,7 +78,7 @@ const app = new Elysia()
   )
   .patch(
     '/todos/:id',
-    ({ params, body, error }) => {
+    async ({ params, body, error }) => {
       const todo = todoList.find((todo) => todo.id === params.id)
 
       if (!todo) {
@@ -100,7 +87,7 @@ const app = new Elysia()
 
       Object.assign(todo, body)
 
-      return todo
+      await db.update(todos).set(todo).where(eq(todos.id, params.id))
     },
     {
       params: t.Object({
@@ -115,16 +102,16 @@ const app = new Elysia()
   )
   .delete(
     '/todos/:id',
-    ({ params, error }) => {
-      const todo = todoList.find((todo) => todo.id === params.id)
+    async ({ params, error }) => {
+      const todo = todoList.find(({ id }) => id === params.id)
+      todoList = todoList.filter((todos) => todos !== todo)
 
       if (!todo) {
+        console.log('err')
         return error(204, 'Todo can not be deleted.')
       }
 
-      todoList.splice(todoList.indexOf(todo), 1)
-
-      return todo
+      await db.delete(todos).where(eq(todos.id, params.id))
     },
     {
       params: t.Object({

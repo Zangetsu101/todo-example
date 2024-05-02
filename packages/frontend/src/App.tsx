@@ -9,7 +9,7 @@ import { Checkbox } from './components/ui/checkbox'
 import { Label } from './components/ui/label'
 import { Button } from './components/ui/button'
 import { StarIcon, Trash2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, useOptimistic } from 'react'
 import { Input } from './components/ui/input'
 import type { App } from 'backend/src/index'
 import { treaty } from '@elysiajs/eden'
@@ -18,10 +18,12 @@ const client = treaty<App>('localhost:3000')
 
 function Delete({
   id,
-  onDelete
+  onDelete,
+  disabled
 }: {
   id: number
   onDelete: (id: number) => void
+  disabled?: boolean
 }) {
   return (
     <Button
@@ -29,6 +31,7 @@ function Delete({
       variant="ghost"
       size="icon"
       className="rounded-3xl"
+      disabled={disabled}
     >
       <Trash2 className="h-4 w-4 text-red-500" />
     </Button>
@@ -67,46 +70,88 @@ type Todo = NonNullable<
 function App() {
   const [todos, setTodos] = useState<Todo[]>([])
   const inputRef = useRef<HTMLInputElement>(null)
+  const [optimisticTodos, setOptimisticTodos] = useOptimistic<Todo[]>(todos)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    client.todos.get().then((res) => {
-      if (res.error) {
-        res.error
-      }
-      if (res.data) {
-        setTodos(res.data)
-      }
-    })
+    client.todos
+      .get()
+      .then((res) => {
+        setTodos(res.data || [])
+        setLoading(false)
+      })
+      .catch((error) => {
+        console.log(error)
+      })
   }, [])
 
-  const handleDelete = (id: number) =>
-    setTodos(todos.filter((todo) => todo.id !== id))
+  const handleDelete = (id: number) => {
+    setOptimisticTodos(todos.filter((todo) => todo.id !== id))
 
-  const toggleStar = (id: number) =>
+    client
+      .todos({ id })
+      .delete()
+      .then(() => {
+        setTodos(todos.filter((todos) => todos.id !== id))
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+  }
+
+  const toggleStar = (id: number) => {
+    setOptimisticTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, starred: !todo.starred } : todo
+      )
+    )
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, starred: !todo.starred } : todo
       )
     )
+    client.todos({ id }).patch({ starred: !todo?.starred })
+  }
 
-  const toggleChecked = (id: number) =>
+  const toggleChecked = (id: number) => {
+    setOptimisticTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    )
+    const todo = todos.find((todo) => todo.id === id)
     setTodos(
       todos.map((todo) =>
         todo.id === id ? { ...todo, completed: !todo.completed } : todo
       )
     )
+    client.todos({ id }).patch({ completed: !todo?.completed })
+  }
 
   const addTodo = () => {
-    setTodos([
+    const inputDesc = inputRef.current!.value
+    setLoading(true)
+    setOptimisticTodos([
       ...todos,
       {
-        id: todos.length,
-        desc: inputRef.current!.value,
+        id: Math.random(),
+        desc: inputDesc,
         starred: false,
         completed: false
       }
     ])
-    inputRef.current!.value = ''
+    client.todos
+      .post({ desc: inputDesc })
+      .then((res) => {
+        if (res.data) setTodos([...todos, res.data])
+        setLoading(false)
+        inputRef.current!.value = ' '
+      })
+      .catch((error) => {
+        console.log(error)
+      })
+    //   inputRef.current!.value = ''
   }
 
   return (
@@ -116,8 +161,8 @@ function App() {
         <TableCaption>A list of your todos.</TableCaption>
         <TableBody>
           {[
-            ...todos.filter(({ starred }) => starred),
-            ...todos.filter(({ starred }) => !starred)
+            ...optimisticTodos.filter(({ starred }) => starred),
+            ...optimisticTodos.filter(({ starred }) => !starred)
           ].map((todo) => (
             <TableRow key={todo.id}>
               <TableCell>
@@ -136,7 +181,11 @@ function App() {
                   starred={todo.starred}
                   toggleStar={toggleStar}
                 />
-                <Delete id={todo.id} onDelete={handleDelete} />
+                <Delete
+                  id={todo.id}
+                  onDelete={handleDelete}
+                  disabled={loading}
+                />
               </TableCell>
             </TableRow>
           ))}

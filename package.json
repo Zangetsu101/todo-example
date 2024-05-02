@@ -3,5 +3,12 @@
   "private": true,
   "workspaces": [
     "packages/*"
-  ]
+  ],
+  "dependencies": {
+    "create-vite": "^5.2.3",
+    "elysia": "^1.0.10"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^0.20.17"
+  }
 }
